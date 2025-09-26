@@ -226,3 +226,7 @@ coverage/
 
 # Test artifacts
 test-results/
+
+
+.env
+.env.example    
