@@ -9,6 +9,8 @@ import { ScoringExplanation } from "@/components/scoring-explanation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, ArrowRight, Shield, Users, Gift, Lock } from "lucide-react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 export default function HomePage() {
   return (
@@ -21,8 +23,23 @@ export default function HomePage() {
         <p className="text-xl text-muted-foreground mb-6">
           Get your trust score, verify your identity, and access Web3 features
         </p>
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-6">
           <WalletConnect />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link href="/verification">
+              <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                <Shield className="w-5 h-5 mr-2" />
+                Start Complete Verification
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+            <Link href="/deployment-status">
+              <Button size="lg" variant="outline" className="border-orange-600 text-orange-600 hover:bg-orange-50">
+                <CheckCircle className="w-5 h-5 mr-2" />
+                View Deployment Status
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 

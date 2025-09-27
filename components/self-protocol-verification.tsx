@@ -51,7 +51,7 @@ export function SelfProtocolVerification() {
         userIdType: SELF_CONFIG.USER_ID_TYPE, // hex for EVM address
         userDefinedData: `ChainCred Reputation Passport for ${address}`,
         deeplinkCallback: getCallbackUrl(),
-        disclosures: SELF_CONFIG.DISCLOSURES
+        disclosures: SELF_CONFIG.DISCLOSURES as any
       }).build()
 
       setSelfApp(app)
@@ -69,10 +69,10 @@ export function SelfProtocolVerification() {
     }
   }
 
-  const handleSuccessfulVerification = (result: any) => {
-    console.log('🎉 Self Protocol verification successful!', result)
+  const handleSuccessfulVerification = () => {
+    console.log('🎉 Self Protocol verification successful!')
     
-    setVerificationResult(result)
+    setVerificationResult({ verified: true, timestamp: Date.now() })
     setIsVerifying(false)
     
     // Here you would typically:

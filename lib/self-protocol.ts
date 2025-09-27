@@ -30,10 +30,11 @@ export const SELF_CONFIG = {
   }
 }
 
-// Callback URL helper
+// Callback URL helper - Use production URL for Self Protocol
 export const getCallbackUrl = () => {
-  if (typeof window !== 'undefined') {
-    return `${window.location.origin}/api/self-verify/callback`
-  }
-  return '/api/self-verify/callback'
+  // Use environment variable for production URL, fallback to localhost for development
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+    (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
+  
+  return `${baseUrl}/api/self-verify/callback`
 }

@@ -29,25 +29,22 @@ export async function GET(request: NextRequest) {
       // 3. Update user status in your database
       // 4. Trigger any follow-up actions (SBT minting, etc.)
       
-      return NextResponse.json({
-        success: true,
-        message: 'Verification successful',
-        verificationId,
-        userId,
-        timestamp: new Date().toISOString()
-      })
+      // Redirect to success page instead of returning JSON
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const successUrl = `${baseUrl}/verification?status=success&verification_id=${verificationId}&user_id=${userId}`
+      
+      return NextResponse.redirect(successUrl)
     }
     
     // Handle failed verification
     if (status === 'error' || error) {
       console.log('❌ Verification failed:', error)
       
-      return NextResponse.json({
-        success: false,
-        message: 'Verification failed',
-        error: error || 'Unknown error',
-        timestamp: new Date().toISOString()
-      }, { status: 400 })
+      // Redirect to error page instead of returning JSON
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const errorUrl = `${baseUrl}/verification?status=error&error=${encodeURIComponent(error || 'Unknown error')}`
+      
+      return NextResponse.redirect(errorUrl)
     }
     
     // Handle other cases
