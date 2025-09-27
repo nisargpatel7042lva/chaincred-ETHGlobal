@@ -8,6 +8,7 @@ import { BrowserProvider } from "ethers"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/hooks/use-toast"
+import { CheckCircle, AlertCircle } from "lucide-react"
 
 // Load from .env.local
 const SBT_CONTRACT = process.env.NEXT_PUBLIC_REPUTATION_PASSPORT_ADDRESS as `0x${string}` | undefined
@@ -27,9 +28,27 @@ export function SbtMintCard({ score }: { score: number }) {
   const [hash, setHash] = useState<`0x${string}` | undefined>()
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirmed" | "failed">("idle")
   const [checking, setChecking] = useState(false)
+  const [isIdentityVerified, setIsIdentityVerified] = useState(false)
+
+  // Check if user is identity verified
+  useEffect(() => {
+    if (address) {
+      const stored = localStorage.getItem(`self_verification_${address}`)
+      if (stored) {
+        try {
+          const verificationData = JSON.parse(stored)
+          setIsIdentityVerified(verificationData.verified === true)
+        } catch (e) {
+          setIsIdentityVerified(false)
+        }
+      } else {
+        setIsIdentityVerified(false)
+      }
+    }
+  }, [address])
 
   const eligible = score >= 70
-  const canMint = eligible && isConnected
+  const canMint = eligible && isConnected && isIdentityVerified
 
   const { writeContract, isPending: isSubmitting } = useWriteContract()
   const { isLoading: isConfirming, isSuccess: isConfirmed, error: receiptError } = useWaitForTransactionReceipt({ hash })
@@ -89,11 +108,41 @@ export function SbtMintCard({ score }: { score: number }) {
         <CardDescription>Your score: {score} — Eligible if ≥ 70</CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground">
-          {eligible
-            ? "You are eligible to mint this non-transferable token."
-            : "You are not eligible yet. Increase your on-chain activity."}
-        </p>
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            {eligible
+              ? "You are eligible to mint this non-transferable token."
+              : "You are not eligible yet. Increase your on-chain activity."}
+          </p>
+          
+          {eligible && !isIdentityVerified && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-yellow-800">Identity Verification Required</p>
+                  <p className="text-yellow-600">
+                    You must verify your identity with Self Protocol before minting your SBT.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {eligible && isIdentityVerified && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-green-800">Ready to Mint</p>
+                  <p className="text-green-600">
+                    Your identity is verified and you're eligible to mint your SBT.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {hash && (
           <div className="mt-4 text-xs">

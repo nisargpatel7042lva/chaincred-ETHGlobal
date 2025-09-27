@@ -122,7 +122,7 @@ contract ReputationGate is Ownable, ReentrancyGuard {
      * @param user The user address
      * @return True if user has access
      */
-    function hasAccessToGate(bytes32 gateId, address user) external view returns (bool) {
+    function hasAccessToGate(bytes32 gateId, address user) public view returns (bool) {
         GateConfig memory gate = gates[gateId];
         
         if (!gate.isActive) {
@@ -219,14 +219,14 @@ contract ReputationGate is Ownable, ReentrancyGuard {
      * @dev Get comprehensive access information for a user
      * @param gateId The gate ID
      * @param user The user address
-     * @return hasAccess Whether user has access
+     * @return userHasAccess Whether user has access
      * @return score User's reputation score
      * @return isIdentityVerified Whether user is identity verified
      * @return isHumanVerified Whether user is verified as human
      * @return requiresIdentityVerification Whether gate requires identity verification
      */
     function getAccessInfo(bytes32 gateId, address user) external view returns (
-        bool hasAccess,
+        bool userHasAccess,
         uint256 score,
         bool isIdentityVerified,
         bool isHumanVerified,
@@ -243,6 +243,6 @@ contract ReputationGate is Ownable, ReentrancyGuard {
         isIdentityVerified = selfProtocol.verifyIdentity(user);
         isHumanVerified = selfProtocol.isVerifiedHuman(user);
         
-        hasAccess = hasAccessToGate(gateId, user);
+        userHasAccess = hasAccessToGate(gateId, user);
     }
 }

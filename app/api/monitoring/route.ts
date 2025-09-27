@@ -1,21 +1,30 @@
 /* Backend Monitoring API */
 import { NextResponse } from "next/server"
-import { backendServices } from "@/lib/backend-services"
-import { dataPipeline } from "@/lib/data-pipeline"
 
 export async function GET() {
   try {
-    const serviceHealth = backendServices.getServiceHealth()
-    const activePipelines = dataPipeline.getActivePipelines()
-    const allPipelines = dataPipeline.getAllPipelines()
+    // Mock monitoring data for development
+    const serviceHealth = {
+      overall: 'healthy',
+      services: [
+        { name: 'The Graph API', status: 'active', responseTime: 150, lastCheck: Date.now() },
+        { name: '0G AI Service', status: 'active', responseTime: 200, lastCheck: Date.now() },
+        { name: 'Self Protocol', status: 'active', responseTime: 100, lastCheck: Date.now() },
+        { name: 'Reputation Oracle', status: 'active', responseTime: 50, lastCheck: Date.now() }
+      ]
+    }
 
-    // Calculate system metrics
+    const allPipelines = [
+      { id: '1', overallStatus: 'completed', totalDuration: 1200 },
+      { id: '2', overallStatus: 'completed', totalDuration: 800 },
+      { id: '3', overallStatus: 'failed', totalDuration: 500 }
+    ]
+
     const totalPipelines = allPipelines.length
     const completedPipelines = allPipelines.filter(p => p.overallStatus === 'completed').length
     const failedPipelines = allPipelines.filter(p => p.overallStatus === 'failed').length
     const successRate = totalPipelines > 0 ? (completedPipelines / totalPipelines) * 100 : 0
 
-    // Calculate average processing time
     const completedWithDuration = allPipelines.filter(p => p.totalDuration)
     const avgProcessingTime = completedWithDuration.length > 0 
       ? completedWithDuration.reduce((sum, p) => sum + (p.totalDuration || 0), 0) / completedWithDuration.length
@@ -37,7 +46,7 @@ export async function GET() {
       },
       pipelines: {
         total: totalPipelines,
-        active: activePipelines.length,
+        active: 0,
         completed: completedPipelines,
         failed: failedPipelines,
         successRate: Math.round(successRate * 100) / 100,

@@ -19,10 +19,10 @@ async function main() {
   const passportAddress = await reputationPassport.getAddress();
   console.log(`ReputationPassport deployed to: ${passportAddress}`);
 
-  // Deploy ReputationGate
+  // Deploy ReputationGate (without Self Protocol for now)
   console.log("Deploying ReputationGate...");
   const ReputationGate = await ethers.getContractFactory("ReputationGate");
-  const reputationGate = await ReputationGate.deploy(passportAddress);
+  const reputationGate = await ReputationGate.deploy(passportAddress, ethers.ZeroAddress); // Use zero address for Self Protocol
   await reputationGate.waitForDeployment();
   const gateAddress = await reputationGate.getAddress();
   console.log(`ReputationGate deployed to: ${gateAddress}`);

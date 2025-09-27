@@ -1,6 +1,21 @@
 /* GRC-20-ts Library Integration for Knowledge Graph Publishing */
 
-import { GRC20Client } from 'grc-20-ts'
+// Mock GRC20Client for development (replace with real import when available)
+class GRC20Client {
+  constructor(config: any) {
+    console.log('GRC20Client initialized with config:', config)
+  }
+
+  async publish(data: any): Promise<{ id: string }> {
+    console.log('GRC20Client.publish called with:', data)
+    return { id: `mock-${Date.now()}` }
+  }
+
+  async query(data: any): Promise<any> {
+    console.log('GRC20Client.query called with:', data)
+    return { results: [] }
+  }
+}
 
 export interface ReputationMetadata {
   walletAddress: string

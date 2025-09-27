@@ -1,16 +1,14 @@
 "use client"
-// @ts-nocheck
 
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useAccount } from "wagmi"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Shield, CheckCircle, XCircle, AlertCircle } from "lucide-react"
-import { QRCodeCanvas } from "qrcode.react"
+import { Shield, CheckCircle, XCircle, AlertCircle, QrCode } from 'lucide-react'
 
-const getUniversalLink = (app: any) =>
-  `https://self.xyz/verify/${app.scope}/${app.userId}`
+// Mock Self Protocol imports (replace with real ones when available)
+const getUniversalLink = (app: any) => `https://self.xyz/verify/${app.scope}/${app.userId}`;
 
 interface SelfApp {
   version: number
@@ -29,71 +27,11 @@ interface SelfApp {
   }
 }
 
-interface SelfQRcodeWrapperProps {
-  selfApp: SelfApp
-  onSuccess: () => void
-  onError: (error: string) => void
-}
-
-// ✅ Real QR Code wrapper (mock verification logic for now)
-function SelfQRcodeWrapper({ selfApp, onSuccess, onError }: SelfQRcodeWrapperProps) {
-  const [isVerifying, setIsVerifying] = useState(false)
-  const [verificationStatus, setVerificationStatus] = useState<
-    "idle" | "verifying" | "success" | "error"
-  >("idle")
-
-  const handleVerify = async () => {
-    setIsVerifying(true)
-    setVerificationStatus("verifying")
-
-    // Simulate verification process
-    setTimeout(() => {
-      const success = Math.random() > 0.3 // 70% success chance
-      if (success) {
-        setVerificationStatus("success")
-        onSuccess()
-      } else {
-        setVerificationStatus("error")
-        onError("Verification failed")
-      }
-      setIsVerifying(false)
-    }, 3000)
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center">
-        <div className="flex justify-center mb-4">
-          <QRCodeCanvas value={getUniversalLink(selfApp)} size={180} />
-        </div>
-        <p className="text-sm text-gray-600 mb-4">Scan with Self app or click to verify</p>
-        <Button onClick={handleVerify} disabled={isVerifying} className="w-full">
-          {isVerifying ? "Verifying..." : "Verify Identity"}
-        </Button>
-      </div>
-
-      {verificationStatus === "success" && (
-        <div className="flex items-center gap-2 text-green-600">
-          <CheckCircle className="w-5 h-5" />
-          <span>Identity verified successfully!</span>
-        </div>
-      )}
-
-      {verificationStatus === "error" && (
-        <div className="flex items-center gap-2 text-red-600">
-          <XCircle className="w-5 h-5" />
-          <span>Verification failed. Please try again.</span>
-        </div>
-      )}
-    </div>
-  )
-}
-
 interface SelfProtocolVerificationProps {
   onVerificationComplete?: (result: any) => void
 }
 
-export function SelfProtocolVerification({ onVerificationComplete }: SelfProtocolVerificationProps) {
+export function SelfProtocolVerificationImproved({ onVerificationComplete }: SelfProtocolVerificationProps) {
   const { address } = useAccount()
   const [selfApp, setSelfApp] = useState<SelfApp | null>(null)
   const [verificationResult, setVerificationResult] = useState<any>(null)
@@ -111,6 +49,22 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
 
   useEffect(() => {
     if (!address) return
+
+    // Check if already verified
+    const stored = localStorage.getItem(`self_verification_${address}`)
+    if (stored) {
+      try {
+        const verificationData = JSON.parse(stored)
+        if (verificationData.verified) {
+          setVerificationResult(verificationData)
+          setIsVerified(true)
+          setVerificationStep('success')
+          return
+        }
+      } catch (e) {
+        console.warn('Failed to parse stored verification data')
+      }
+    }
 
     // Mock SelfApp config (replace with SelfAppBuilder later)
     const app: SelfApp = {
@@ -176,6 +130,9 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
     setQrScanned(false)
     setIsVerifying(false)
     setVerificationResult(null)
+    if (address) {
+      localStorage.removeItem(`self_verification_${address}`)
+    }
   }
 
   const handleVerificationError = (error: string) => {
@@ -185,21 +142,9 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
       error: error,
       timestamp: Date.now(),
     })
+    setVerificationStep('failed')
+    setIsVerifying(false)
   }
-
-  // Restore past verification from localStorage
-  useEffect(() => {
-    if (address) {
-      const stored = localStorage.getItem(`self_verification_${address}`)
-      if (stored) {
-        const verificationData = JSON.parse(stored)
-        if (verificationData.verified) {
-          setVerificationResult(verificationData)
-          setIsVerified(true)
-        }
-      }
-    }
-  }, [address])
 
   if (!address) {
     return (
@@ -257,7 +202,7 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
               <div className="text-sm">
                 <p className="font-medium text-green-800">Identity Verified</p>
                 <p className="text-green-600">
-                  This wallet is now linked to a verified human identity. You can participate in DAO voting and claim airdrops.
+                  This wallet is now linked to a verified human identity. You can now mint your SBT and access gated features.
                 </p>
               </div>
             </div>
@@ -288,29 +233,120 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
           </div>
         </div>
 
-        {selfApp ? (
-          <SelfQRcodeWrapper
-            selfApp={selfApp}
-            onSuccess={handleSuccessfulVerification}
-            onError={handleVerificationError}
-          />
-        ) : (
-          <div className="p-4 text-center text-muted-foreground">Loading verification system...</div>
+        {/* Step-by-step verification flow */}
+        {verificationStep === 'idle' && (
+          <div className="space-y-4">
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-blue-800">Ready to Verify</p>
+                  <p className="text-blue-600">
+                    Click "Start Verification" to generate a QR code. Scan it with the Self mobile app to verify your identity.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Button onClick={startVerification} className="w-full">
+              Start Verification
+            </Button>
+          </div>
         )}
 
-        <div className="text-xs text-muted-foreground space-y-1">
-          <p>
-            <strong>What this verifies:</strong>
-          </p>
-          <ul className="list-disc list-inside space-y-1 ml-2">
-            <li>You are a real human (not a bot)</li>
-            <li>You are at least 18 years old</li>
-            <li>Your nationality and basic identity</li>
-            <li>Prevents duplicate accounts for the same person</li>
-          </ul>
-        </div>
+        {verificationStep === 'qr_displayed' && (
+          <div className="space-y-4">
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <QrCode className="w-4 h-4 text-yellow-600 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-yellow-800">Scan QR Code</p>
+                  <p className="text-yellow-600">
+                    Open the Self mobile app and scan this QR code to verify your identity.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            {selfApp && (
+              <div className="flex flex-col items-center space-y-4">
+                {/* Mock QR Code Display */}
+                <div className="p-8 bg-white border-2 border-dashed border-gray-300 rounded-lg">
+                  <div className="text-center space-y-2">
+                    <QrCode className="w-16 h-16 mx-auto text-gray-400" />
+                    <p className="text-sm text-gray-500">QR Code for Self App</p>
+                    <p className="text-xs text-gray-400 font-mono">{getUniversalLink(selfApp)}</p>
+                  </div>
+                </div>
+                
+                <Button onClick={handleQRScanned} variant="outline" className="w-full">
+                  I've Scanned the QR Code
+                </Button>
+              </div>
+            )}
+            
+            <Button onClick={resetVerification} variant="ghost" className="w-full">
+              Cancel Verification
+            </Button>
+          </div>
+        )}
+
+        {verificationStep === 'qr_scanned' && (
+          <div className="space-y-4">
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-blue-800">Verifying Identity</p>
+                  <p className="text-blue-600">
+                    Processing your verification... This may take a few moments.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          </div>
+        )}
+
+        {verificationStep === 'success' && (
+          <div className="space-y-4">
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-green-800">Verification Successful!</p>
+                  <p className="text-green-600">
+                    Your identity has been verified. You can now mint your SBT and access gated features.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Button onClick={resetVerification} variant="outline" className="w-full">
+              Verify Another Identity
+            </Button>
+          </div>
+        )}
+
+        {verificationStep === 'failed' && (
+          <div className="space-y-4">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <XCircle className="w-4 h-4 text-red-600 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-red-800">Verification Failed</p>
+                  <p className="text-red-600">
+                    There was an error during verification. Please try again.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Button onClick={resetVerification} className="w-full">
+              Try Again
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   )
 }
-

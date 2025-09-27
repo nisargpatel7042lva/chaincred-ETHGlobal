@@ -70,7 +70,7 @@ contract SelfProtocolReputation is SelfVerificationRoot {
         address identityVerificationHubV2Address,
         uint256 scopeSeed,
         SelfUtils.UnformattedVerificationConfigV2 memory _verificationConfig
-    ) SelfVerificationRoot(identityVerificationHubV2Address, scopeSeed) {
+    ) SelfVerificationRoot(identityVerificationHubV2Address, uint256(scopeSeed)) {
         verificationConfig = 
             SelfUtils.formatVerificationConfigV2(_verificationConfig);
         verificationConfigId = 
@@ -218,7 +218,6 @@ contract SelfProtocolReputation is SelfVerificationRoot {
         // For now, we'll create a deterministic nullifier based on the output data
         return keccak256(abi.encodePacked(
             output.userIdentifier,
-            output.timestamp,
             output.proof
         ));
     }
