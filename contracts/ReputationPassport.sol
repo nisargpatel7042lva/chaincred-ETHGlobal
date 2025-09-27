@@ -14,12 +14,12 @@ import "./ReputationOracle.sol";
  */
 contract ReputationPassport is ERC721, Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
-    
+
     Counters.Counter private _tokenIdCounter;
-    
+
     // Reference to the reputation oracle
     ReputationOracle public immutable reputationOracle;
-    
+
     // Struct to store reputation data
     struct ReputationData {
         uint256 score;
@@ -32,19 +32,19 @@ contract ReputationPassport is ERC721, Ownable, ReentrancyGuard {
         uint256 mintedAt;
         string explanation;
     }
-    
+
     // Mapping from token ID to reputation data
     mapping(uint256 => ReputationData) public reputationData;
-    
+
     // Mapping from address to token ID (one SBT per address)
     mapping(address => uint256) public addressToTokenId;
-    
+
     // Mapping to check if address has minted
     mapping(address => bool) public hasMinted;
-    
+
     // Minimum score required to mint
     uint256 public constant MIN_SCORE = 70;
-    
+
     // Events
     event ReputationPassportMinted(
         address indexed to,
@@ -54,36 +54,36 @@ contract ReputationPassport is ERC721, Ownable, ReentrancyGuard {
         uint256 daoVotes,
         uint256 defiTxs
     );
-    
+
     event ReputationPassportBurned(
         address indexed from,
         uint256 indexed tokenId
     );
-    
-    constructor(address _reputationOracle) ERC721("Ethereum Reputation Passport", "REP") Ownable() {
+
+    constructor(
+        address _reputationOracle
+    ) ERC721("Ethereum Reputation Passport", "REP") Ownable() {
         reputationOracle = ReputationOracle(_reputationOracle);
     }
+
     
-    /**
-     * @dev Mint a reputation passport SBT
-     * @param to The address to mint to
-     * @param explanation AI-generated explanation of the score
-     */
     function mintReputationPassport(
-        address to,
         string memory explanation
-    ) external onlyOwner nonReentrant {
+    ) external nonReentrant {
+        address to = msg.sender;
         require(!hasMinted[to], "Address already has a reputation passport");
         require(to != address(0), "Cannot mint to zero address");
-        
-        // Get reputation data from oracle
-        ReputationOracle.ReputationData memory oracleData = reputationOracle.getReputationData(to);
-        require(oracleData.score >= MIN_SCORE, "Score too low to mint passport");
-        
+
+        ReputationOracle.ReputationData memory oracleData = reputationOracle
+            .getReputationData(to);
+        require(
+            oracleData.score >= MIN_SCORE,
+            "Score too low to mint passport"
+        );
+
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
-        
-        // Store reputation data
+
         reputationData[tokenId] = ReputationData({
             score: oracleData.score,
             walletAge: oracleData.walletAge,
@@ -95,58 +95,67 @@ contract ReputationPassport is ERC721, Ownable, ReentrancyGuard {
             mintedAt: block.timestamp,
             explanation: explanation
         });
-        
-        // Map address to token ID
+
         addressToTokenId[to] = tokenId;
         hasMinted[to] = true;
-        
-        // Mint the SBT
+
         _safeMint(to, tokenId);
-        
-        emit ReputationPassportMinted(to, tokenId, oracleData.score, oracleData.walletAge, oracleData.daoVotes, oracleData.defiTxs);
+
+        emit ReputationPassportMinted(
+            to,
+            tokenId,
+            oracleData.score,
+            oracleData.walletAge,
+            oracleData.daoVotes,
+            oracleData.defiTxs
+        );
     }
-    
+
     /**
      * @dev Burn a reputation passport SBT (only owner)
      * @param tokenId The token ID to burn
      */
     function burnReputationPassport(uint256 tokenId) external onlyOwner {
         require(_exists(tokenId), "Token does not exist");
-        
+
         address owner = ownerOf(tokenId);
-        
+
         // Clear mappings
         delete addressToTokenId[owner];
         hasMinted[owner] = false;
         delete reputationData[tokenId];
-        
+
         // Burn the token
         _burn(tokenId);
-        
+
         emit ReputationPassportBurned(owner, tokenId);
     }
-    
+
     /**
      * @dev Get reputation data for a token ID
      * @param tokenId The token ID
      * @return The reputation data struct
      */
-    function getReputationData(uint256 tokenId) external view returns (ReputationData memory) {
+    function getReputationData(
+        uint256 tokenId
+    ) external view returns (ReputationData memory) {
         require(_exists(tokenId), "Token does not exist");
         return reputationData[tokenId];
     }
-    
+
     /**
      * @dev Get reputation data for an address
      * @param addr The address
      * @return The reputation data struct
      */
-    function getReputationDataByAddress(address addr) external view returns (ReputationData memory) {
+    function getReputationDataByAddress(
+        address addr
+    ) external view returns (ReputationData memory) {
         require(hasMinted[addr], "Address has not minted a passport");
         uint256 tokenId = addressToTokenId[addr];
         return reputationData[tokenId];
     }
-    
+
     /**
      * @dev Check if an address has a reputation passport
      * @param addr The address to check
@@ -155,7 +164,7 @@ contract ReputationPassport is ERC721, Ownable, ReentrancyGuard {
     function hasReputationPassport(address addr) external view returns (bool) {
         return hasMinted[addr];
     }
-    
+
     /**
      * @dev Get the score for an address
      * @param addr The address
@@ -166,7 +175,7 @@ contract ReputationPassport is ERC721, Ownable, ReentrancyGuard {
         uint256 tokenId = addressToTokenId[addr];
         return reputationData[tokenId].score;
     }
-    
+
     /**
      * @dev Check if an address is eligible for SBT minting
      * @param addr The address to check
@@ -175,7 +184,7 @@ contract ReputationPassport is ERC721, Ownable, ReentrancyGuard {
     function isEligibleForSBT(address addr) external view returns (bool) {
         return reputationOracle.isEligibleForSBT(addr);
     }
-    
+
     /**
      * @dev Override transfer functions to make this a Soulbound Token
      */
@@ -192,18 +201,18 @@ contract ReputationPassport is ERC721, Ownable, ReentrancyGuard {
         );
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
-    
+
     /**
      * @dev Override approve functions to prevent transfers
      */
     function approve(address, uint256) public pure override {
         revert("Reputation Passport is non-transferable");
     }
-    
+
     function setApprovalForAll(address, bool) public pure override {
         revert("Reputation Passport is non-transferable");
     }
-    
+
     /**
      * @dev Get the total number of minted passports
      * @return The total supply
@@ -211,39 +220,64 @@ contract ReputationPassport is ERC721, Ownable, ReentrancyGuard {
     function totalSupply() external view returns (uint256) {
         return _tokenIdCounter.current();
     }
-    
+
     /**
      * @dev Get token URI for metadata
      * @param tokenId The token ID
      * @return The token URI
      */
-    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+    function tokenURI(
+        uint256 tokenId
+    ) public view override returns (string memory) {
         require(_exists(tokenId), "Token does not exist");
-        
+
         ReputationData memory data = reputationData[tokenId];
-        
+
         // Create JSON metadata
-        string memory json = string(abi.encodePacked(
-            '{"name": "Ethereum Reputation Passport #', _toString(tokenId), '",',
-            '"description": "A Soulbound Token representing on-chain reputation",',
-            '"image": "https://reputation-passport.vercel.app/api/metadata/', _toString(tokenId), '",',
-            '"attributes": [',
-            '{"trait_type": "Score", "value": ', _toString(data.score), '},',
-            '{"trait_type": "Wallet Age", "value": ', _toString(data.walletAge), '},',
-            '{"trait_type": "DAO Votes", "value": ', _toString(data.daoVotes), '},',
-            '{"trait_type": "DeFi Transactions", "value": ', _toString(data.defiTxs), '},',
-            '{"trait_type": "Total Transactions", "value": ', _toString(data.totalTxs), '},',
-            '{"trait_type": "Unique Contracts", "value": ', _toString(data.uniqueContracts), '},',
-            '{"trait_type": "Minted At", "value": ', _toString(data.mintedAt), '}',
-            ']}'
-        ));
-        
-        return string(abi.encodePacked(
-            "data:application/json;base64,",
-            _base64Encode(bytes(json))
-        ));
+        string memory json = string(
+            abi.encodePacked(
+                '{"name": "Ethereum Reputation Passport #',
+                _toString(tokenId),
+                '",',
+                '"description": "A Soulbound Token representing on-chain reputation",',
+                '"image": "https://reputation-passport.vercel.app/api/metadata/',
+                _toString(tokenId),
+                '",',
+                '"attributes": [',
+                '{"trait_type": "Score", "value": ',
+                _toString(data.score),
+                "},",
+                '{"trait_type": "Wallet Age", "value": ',
+                _toString(data.walletAge),
+                "},",
+                '{"trait_type": "DAO Votes", "value": ',
+                _toString(data.daoVotes),
+                "},",
+                '{"trait_type": "DeFi Transactions", "value": ',
+                _toString(data.defiTxs),
+                "},",
+                '{"trait_type": "Total Transactions", "value": ',
+                _toString(data.totalTxs),
+                "},",
+                '{"trait_type": "Unique Contracts", "value": ',
+                _toString(data.uniqueContracts),
+                "},",
+                '{"trait_type": "Minted At", "value": ',
+                _toString(data.mintedAt),
+                "}",
+                "]}"
+            )
+        );
+
+        return
+            string(
+                abi.encodePacked(
+                    "data:application/json;base64,",
+                    _base64Encode(bytes(json))
+                )
+            );
     }
-    
+
     /**
      * @dev Convert uint256 to string
      */
@@ -265,42 +299,54 @@ contract ReputationPassport is ERC721, Ownable, ReentrancyGuard {
         }
         return string(buffer);
     }
-    
+
     /**
      * @dev Base64 encode
      */
-    function _base64Encode(bytes memory data) internal pure returns (string memory) {
+    function _base64Encode(
+        bytes memory data
+    ) internal pure returns (string memory) {
         if (data.length == 0) return "";
-        
-        string memory table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        
+
+        string
+            memory table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
         string memory result = new string(4 * ((data.length + 2) / 3));
-        
+
         assembly {
             let tablePtr := add(table, 1)
             let resultPtr := add(result, 32)
-            
+
             for {
                 let i := 0
             } lt(i, mload(data)) {
                 i := add(i, 3)
             } {
                 let input := and(mload(add(data, add(32, i))), 0xffffff)
-                
+
                 let out := mload(add(tablePtr, and(shr(250, input), 0x3F)))
                 out := shl(8, out)
-                out := add(out, and(mload(add(tablePtr, and(shr(244, input), 0x3F))), 0xFF))
+                out := add(
+                    out,
+                    and(mload(add(tablePtr, and(shr(244, input), 0x3F))), 0xFF)
+                )
                 out := shl(8, out)
-                out := add(out, and(mload(add(tablePtr, and(shr(238, input), 0x3F))), 0xFF))
+                out := add(
+                    out,
+                    and(mload(add(tablePtr, and(shr(238, input), 0x3F))), 0xFF)
+                )
                 out := shl(8, out)
-                out := add(out, and(mload(add(tablePtr, and(shr(232, input), 0x3F))), 0xFF))
+                out := add(
+                    out,
+                    and(mload(add(tablePtr, and(shr(232, input), 0x3F))), 0xFF)
+                )
                 out := shl(224, out)
-                
+
                 mstore(resultPtr, out)
-                
+
                 resultPtr := add(resultPtr, 4)
             }
-            
+
             switch mod(mload(data), 3)
             case 1 {
                 mstore(sub(resultPtr, 2), shl(240, 0x3d3d))
@@ -309,7 +355,7 @@ contract ReputationPassport is ERC721, Ownable, ReentrancyGuard {
                 mstore(sub(resultPtr, 1), shl(248, 0x3d))
             }
         }
-        
+
         return result;
     }
 }
