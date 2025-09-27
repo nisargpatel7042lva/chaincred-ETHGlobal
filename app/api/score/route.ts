@@ -1,4 +1,4 @@
-/* Enhanced Score API with Real The Graph Data + 0G AI Integration */
+// app/api/score/route.ts
 import { NextResponse } from "next/server"
 import { getWalletScore } from "@/lib/scoring"
 import { zeroGAIService, type WalletAnalysisData } from "@/lib/zero-g-ai"
@@ -12,21 +12,20 @@ export async function GET(req: Request) {
   }
 
   try {
-    console.log(`Fetching real reputation data for ${address}...`)
-    
-    // Get real wallet score using The Graph data
+    // Step 1: Calculate real on-chain score
     const { score, breakdown, activity } = await getWalletScore(address)
 
-    // Prepare data for 0G AI analysis
+    // Step 2: Prepare AI input
     const walletData: WalletAnalysisData = {
       address,
       score,
       breakdown,
     }
 
-    // Get enhanced AI explanation from 0G
+    // Step 3: Get 0G AI enhanced analysis
     const aiAnalysis = await zeroGAIService.generateReputationExplanation(walletData)
 
+    // Step 4: Return combined response
     return NextResponse.json({
       address,
       score,
@@ -41,20 +40,16 @@ export async function GET(req: Request) {
     })
   } catch (error) {
     console.error("Score API error:", error)
-    
-    // Fallback response with basic scoring
+
+    // Fallback if The Graph or 0G fails
     return NextResponse.json({
       address,
       score: 0,
-      breakdown: {
-        walletAge: 0,
-        daoVotes: 0,
-        defiTxs: 0,
-      },
-      explanation: "Unable to calculate reputation score at this time. Please try again later.",
+      breakdown: { walletAge: 0, daoVotes: 0, defiTxs: 0 },
+      explanation: "Unable to calculate reputation score at this time.",
       confidence: 0.1,
-      reasoning: ["Error occurred during data fetching"],
-      recommendations: ["Please ensure the wallet address is valid and try again"],
+      reasoning: ["Error during data fetching"],
+      recommendations: ["Check wallet address and try again"],
       timestamp: Date.now(),
       dataSource: "Fallback",
     })
