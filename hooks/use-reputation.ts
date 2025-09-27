@@ -10,8 +10,15 @@ type ScoreResponse = {
     walletAge: number
     daoVotes: number
     defiTxs: number
+    totalTxs?: number
+    uniqueContracts?: number
+    lastActivity?: number
   }
   explanation: string
+  confidence?: number
+  reasoning?: string[]
+  recommendations?: string[]
+  timestamp?: number
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
