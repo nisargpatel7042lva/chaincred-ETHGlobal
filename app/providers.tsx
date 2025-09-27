@@ -1,10 +1,14 @@
-/* New: Global Providers for wagmi + React Query */
+/* Rainbow Kit Global Providers for wagmi + React Query */
 "use client"
 
 import { type PropsWithChildren, useMemo, useState } from "react"
 import { WagmiProvider } from "wagmi"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { RainbowKitProvider } from "@rainbow-me/rainbowkit"
 import { wagmiConfig } from "@/components/web3/wagmi-config"
+
+// Import Rainbow Kit styles
+import "@rainbow-me/rainbowkit/styles.css"
 
 export function Providers({ children }: PropsWithChildren) {
   const [queryClient] = useState(() => new QueryClient())
@@ -14,7 +18,19 @@ export function Providers({ children }: PropsWithChildren) {
 
   return (
     <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider
+          appInfo={{
+            appName: "ChainCred",
+            learnMoreUrl: "https://chaincred.vercel.app",
+          }}
+          initialChain={undefined} // Let users choose their preferred chain
+          showRecentTransactions={true}
+          modalSize="compact"
+        >
+          {children}
+        </RainbowKitProvider>
+      </QueryClientProvider>
     </WagmiProvider>
   )
 }
