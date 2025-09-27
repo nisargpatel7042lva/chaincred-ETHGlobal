@@ -33,6 +33,18 @@ const config = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 11155111,
     },
+    celoAlfajores: {
+      url: process.env.CELO_ALFAJORES_RPC_URL || "https://alfajores-forno.celo-testnet.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 44787,
+      gasPrice: 100000000000, // 100 gwei
+    },
+    celo: {
+      url: process.env.CELO_RPC_URL || "https://forno.celo.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 42220,
+      gasPrice: 20000000000, // 20 gwei
+    },
     kadena: {
       url: process.env.KADENA_RPC_URL || "https://api.testnet.chainweb.com",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
@@ -45,7 +57,27 @@ const config = {
   etherscan: {
     apiKey: {
       sepolia: process.env.ETHERSCAN_API_KEY || "",
+      celoAlfajores: process.env.CELO_EXPLORER_API_KEY || "",
+      celo: process.env.CELO_EXPLORER_API_KEY || "",
     },
+    customChains: [
+      {
+        network: "celoAlfajores",
+        chainId: 44787,
+        urls: {
+          apiURL: "https://api-alfajores.celoscan.io/api",
+          browserURL: "https://alfajores.celoscan.io"
+        }
+      },
+      {
+        network: "celo",
+        chainId: 42220,
+        urls: {
+          apiURL: "https://api.celoscan.io/api",
+          browserURL: "https://celoscan.io"
+        }
+      }
+    ]
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,

@@ -1,245 +1,354 @@
-/* Wallet Detection Component - Shows all available wallets */
+/* Comprehensive Ethereum Wallet Detector */
 "use client"
 
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { 
+  Wallet, 
+  CheckCircle, 
+  AlertCircle, 
+  ExternalLink,
+  Smartphone,
+  Monitor
+} from "lucide-react"
 
 interface DetectedWallet {
   name: string
   id: string
-  icon?: string
-  isInstalled: boolean
-  provider?: any
+  icon: string
+  installed: boolean
+  type: 'browser' | 'mobile' | 'hardware'
+  description: string
+  downloadUrl?: string
 }
 
 export function WalletDetector() {
   const [detectedWallets, setDetectedWallets] = useState<DetectedWallet[]>([])
+  const [isDetecting, setIsDetecting] = useState(true)
 
   useEffect(() => {
-    const detectWallets = () => {
-      const wallets: DetectedWallet[] = []
-      
-      // Check for specific Ethereum wallet providers you want to see
-      const priorityWallets = [
-        { name: "MetaMask", id: "metamask", provider: (window as any).ethereum },
-        { name: "Coinbase Wallet", id: "coinbase", provider: (window as any).coinbaseWalletExtension },
-        { name: "Phantom", id: "phantom", provider: (window as any).phantom },
-        { name: "Backpack", id: "backpack", provider: (window as any).backpack },
-      ]
-      
-      // Additional Ethereum wallet providers
-      const otherWallets = [
-        { name: "Trust Wallet", id: "trust", provider: (window as any).trustwallet },
-        { name: "Rabby Wallet", id: "rabby", provider: (window as any).rabby },
-        { name: "OKX Wallet", id: "okx", provider: (window as any).okxwallet },
-        { name: "Bitget Wallet", id: "bitget", provider: (window as any).bitget },
-        { name: "Zerion", id: "zerion", provider: (window as any).zerion },
-        { name: "Frame", id: "frame", provider: (window as any).frame },
-        { name: "imToken", id: "imtoken", provider: (window as any).imToken },
-        { name: "TokenPocket", id: "tokenpocket", provider: (window as any).tokenpocket },
-        { name: "1inch Wallet", id: "oneinch", provider: (window as any).oneInch },
-        { name: "Rainbow", id: "rainbow", provider: (window as any).rainbow },
-        { name: "Brave Wallet", id: "brave", provider: (window as any).braveSolana },
-        { name: "Opera Wallet", id: "opera", provider: (window as any).opera },
-        { name: "Crypto.com DeFi Wallet", id: "crypto", provider: (window as any).crypto },
-        { name: "Binance Chain Wallet", id: "binance", provider: (window as any).BinanceChain },
-        { name: "Math Wallet", id: "math", provider: (window as any).mathwallet },
-        { name: "SafePal", id: "safepal", provider: (window as any).safepal },
-        { name: "Tokenary", id: "tokenary", provider: (window as any).tokenary },
-        { name: "Glow", id: "glow", provider: (window as any).glow },
-        { name: "Slope", id: "slope", provider: (window as any).slope },
-        { name: "Solflare", id: "solflare", provider: (window as any).solflare },
-        { name: "Torus", id: "torus", provider: (window as any).torus },
-        { name: "WalletConnect", id: "walletconnect", provider: null },
-        { name: "Safe Wallet", id: "safe", provider: null },
-        { name: "Ledger", id: "ledger", provider: null },
-        { name: "Trezor", id: "trezor", provider: null },
-      ]
-      
-      const ethereumWallets = [...priorityWallets, ...otherWallets]
-
-      // Check for generic injected providers
-      if ((window as any).ethereum) {
-        const ethereum = (window as any).ethereum
-        
-        // Check if it's a specific wallet
-        if (ethereum.isMetaMask) {
-          wallets.push({
-            name: "MetaMask",
-            id: "metamask",
-            isInstalled: true,
-            provider: ethereum
-          })
-        } else if (ethereum.isCoinbaseWallet) {
-          wallets.push({
-            name: "Coinbase Wallet",
-            id: "coinbase",
-            isInstalled: true,
-            provider: ethereum
-          })
-        } else if (ethereum.isRabby) {
-          wallets.push({
-            name: "Rabby Wallet",
-            id: "rabby",
-            isInstalled: true,
-            provider: ethereum
-          })
-        } else if (ethereum.isTrust) {
-          wallets.push({
-            name: "Trust Wallet",
-            id: "trust",
-            isInstalled: true,
-            provider: ethereum
-          })
-        } else if (ethereum.isPhantom) {
-          wallets.push({
-            name: "Phantom",
-            id: "phantom",
-            isInstalled: true,
-            provider: ethereum
-          })
-        } else if (ethereum.isOkxWallet) {
-          wallets.push({
-            name: "OKX Wallet",
-            id: "okx",
-            isInstalled: true,
-            provider: ethereum
-          })
-        } else if (ethereum.isBitgetWallet) {
-          wallets.push({
-            name: "Bitget Wallet",
-            id: "bitget",
-            isInstalled: true,
-            provider: ethereum
-          })
-        } else if (ethereum.isZerion) {
-          wallets.push({
-            name: "Zerion",
-            id: "zerion",
-            isInstalled: true,
-            provider: ethereum
-          })
-        } else if (ethereum.isFrame) {
-          wallets.push({
-            name: "Frame",
-            id: "frame",
-            isInstalled: true,
-            provider: ethereum
-          })
-        } else if (ethereum.isImToken) {
-          wallets.push({
-            name: "imToken",
-            id: "imtoken",
-            isInstalled: true,
-            provider: ethereum
-          })
-        } else if (ethereum.isTokenPocket) {
-          wallets.push({
-            name: "TokenPocket",
-            id: "tokenpocket",
-            isInstalled: true,
-            provider: ethereum
-          })
-        } else if (ethereum.isOneInch) {
-          wallets.push({
-            name: "1inch Wallet",
-            id: "oneinch",
-            isInstalled: true,
-            provider: ethereum
-          })
-        } else if (ethereum.isRainbow) {
-          wallets.push({
-            name: "Rainbow",
-            id: "rainbow",
-            isInstalled: true,
-            provider: ethereum
-          })
-        } else {
-          // Generic injected wallet
-          wallets.push({
-            name: "Injected Wallet",
-            id: "injected",
-            isInstalled: true,
-            provider: ethereum
-          })
-        }
-      }
-
-      // Check for other specific Ethereum wallet providers
-      ethereumWallets.forEach(wallet => {
-        if (wallet.provider && !wallets.find(w => w.id === wallet.id)) {
-          wallets.push({
-            name: wallet.name,
-            id: wallet.id,
-            isInstalled: true,
-            provider: wallet.provider
-          })
-        } else if (!wallet.provider && !wallets.find(w => w.id === wallet.id)) {
-          // Add wallets that don't have specific providers but are supported
-          wallets.push({
-            name: wallet.name,
-            id: wallet.id,
-            isInstalled: true,
-            provider: null
-          })
-        }
-      })
-
-      setDetectedWallets(wallets)
-    }
-
     detectWallets()
-    
-    // Re-detect when window loads
-    window.addEventListener('load', detectWallets)
-    
-    return () => {
-      window.removeEventListener('load', detectWallets)
-    }
   }, [])
 
-  return (
-    <Card className="w-full max-w-4xl">
-      <CardHeader>
-        <CardTitle>Detected Ethereum Wallets</CardTitle>
-        <CardDescription>
-          Priority wallets: MetaMask, Coinbase, Phantom, Backpack + other detected wallets
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {detectedWallets.map((wallet) => (
-            <div
-              key={wallet.id}
-              className="flex items-center justify-between p-3 border rounded-lg"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  {wallet.name.charAt(0)}
-                </div>
-                <div>
-                  <div className="font-medium">{wallet.name}</div>
-                  <div className="text-xs text-muted-foreground">{wallet.id}</div>
-                </div>
-              </div>
-              <Badge variant={wallet.isInstalled ? "default" : "secondary"}>
-                {wallet.isInstalled ? "Available" : "Not Detected"}
-              </Badge>
-            </div>
-          ))}
-        </div>
-        
-        {detectedWallets.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            No wallets detected. Make sure you have a wallet extension installed.
+  const detectWallets = () => {
+    setIsDetecting(true)
+    
+    // List of all major Ethereum wallets
+    const allWallets: DetectedWallet[] = [
+      {
+        name: "MetaMask",
+        id: "metamask",
+        icon: "🦊",
+        installed: !!(window as any).ethereum?.isMetaMask,
+        type: "browser",
+        description: "The most popular Ethereum wallet",
+        downloadUrl: "https://metamask.io/download/"
+      },
+      {
+        name: "Phantom",
+        id: "phantom",
+        icon: "👻",
+        installed: !!(window as any).phantom?.ethereum,
+        type: "browser",
+        description: "Multi-chain wallet with Ethereum support",
+        downloadUrl: "https://phantom.app/download"
+      },
+      {
+        name: "Backpack",
+        id: "backpack",
+        icon: "🎒",
+        installed: !!(window as any).backpack,
+        type: "browser",
+        description: "Solana and Ethereum wallet",
+        downloadUrl: "https://backpack.app/download"
+      },
+      {
+        name: "Coinbase Wallet",
+        id: "coinbase",
+        icon: "🔷",
+        installed: !!(window as any).ethereum?.isCoinbaseWallet,
+        type: "browser",
+        description: "Coinbase's official wallet",
+        downloadUrl: "https://www.coinbase.com/wallet"
+      },
+      {
+        name: "Trust Wallet",
+        id: "trust",
+        icon: "🛡️",
+        installed: !!(window as any).ethereum?.isTrust,
+        type: "browser",
+        description: "Multi-chain mobile wallet",
+        downloadUrl: "https://trustwallet.com/download"
+      },
+      {
+        name: "Rabby Wallet",
+        id: "rabby",
+        icon: "🐰",
+        installed: !!(window as any).ethereum?.isRabby,
+        type: "browser",
+        description: "DeFi-focused wallet",
+        downloadUrl: "https://rabby.io/download"
+      },
+      {
+        name: "Brave Wallet",
+        id: "brave",
+        icon: "🦁",
+        installed: !!(window as any).ethereum?.isBraveWallet,
+        type: "browser",
+        description: "Built into Brave browser",
+        downloadUrl: "https://brave.com/wallet/"
+      },
+      {
+        name: "Opera Wallet",
+        id: "opera",
+        icon: "🎭",
+        installed: !!(window as any).ethereum?.isOpera,
+        type: "browser",
+        description: "Built into Opera browser",
+        downloadUrl: "https://www.opera.com/crypto"
+      },
+      {
+        name: "Frame",
+        id: "frame",
+        icon: "🖼️",
+        installed: !!(window as any).ethereum?.isFrame,
+        type: "browser",
+        description: "Privacy-focused wallet",
+        downloadUrl: "https://frame.sh/"
+      },
+      {
+        name: "Tally",
+        id: "tally",
+        icon: "📊",
+        installed: !!(window as any).ethereum?.isTally,
+        type: "browser",
+        description: "Community-owned wallet",
+        downloadUrl: "https://tally.cash/"
+      },
+      {
+        name: "Rainbow",
+        id: "rainbow",
+        icon: "🌈",
+        installed: !!(window as any).ethereum?.isRainbow,
+        type: "browser",
+        description: "Beautiful Ethereum wallet",
+        downloadUrl: "https://rainbow.me/download"
+      },
+      {
+        name: "Zerion",
+        id: "zerion",
+        icon: "⚡",
+        installed: !!(window as any).ethereum?.isZerion,
+        type: "browser",
+        description: "DeFi portfolio manager",
+        downloadUrl: "https://zerion.io/download"
+      },
+      {
+        name: "TokenPocket",
+        id: "tokenpocket",
+        icon: "🎯",
+        installed: !!(window as any).ethereum?.isTokenPocket,
+        type: "browser",
+        description: "Multi-chain wallet",
+        downloadUrl: "https://www.tokenpocket.pro/download"
+      },
+      {
+        name: "OKX Wallet",
+        id: "okx",
+        icon: "🟠",
+        installed: !!(window as any).okxwallet,
+        type: "browser",
+        description: "OKX exchange wallet",
+        downloadUrl: "https://www.okx.com/web3"
+      },
+      {
+        name: "Bitget Wallet",
+        id: "bitget",
+        icon: "🟡",
+        installed: !!(window as any).bitkeep,
+        type: "browser",
+        description: "Bitget exchange wallet",
+        downloadUrl: "https://web3.bitget.com/"
+      }
+    ]
+
+    // Check for generic injected wallets
+    if ((window as any).ethereum && !allWallets.some(w => w.installed)) {
+      allWallets.push({
+        name: "Injected Wallet",
+        id: "injected",
+        icon: "💉",
+        installed: true,
+        type: "browser",
+        description: "Unknown injected wallet"
+      })
+    }
+
+    setDetectedWallets(allWallets)
+    setIsDetecting(false)
+  }
+
+  const installedWallets = detectedWallets.filter(w => w.installed)
+  const availableWallets = detectedWallets.filter(w => !w.installed)
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'browser':
+        return <Monitor className="w-4 h-4" />
+      case 'mobile':
+        return <Smartphone className="w-4 h-4" />
+      case 'hardware':
+        return <Wallet className="w-4 h-4" />
+      default:
+        return <Wallet className="w-4 h-4" />
+    }
+  }
+
+  const getTypeBadge = (type: string) => {
+    switch (type) {
+      case 'browser':
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Browser</Badge>
+      case 'mobile':
+        return <Badge variant="secondary" className="bg-green-100 text-green-800">Mobile</Badge>
+      case 'hardware':
+        return <Badge variant="secondary" className="bg-purple-100 text-purple-800">Hardware</Badge>
+      default:
+        return <Badge variant="secondary" className="bg-gray-100 text-gray-800">Unknown</Badge>
+    }
+  }
+
+  if (isDetecting) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <div className="flex items-center justify-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            <p className="text-muted-foreground">Detecting wallets...</p>
           </div>
-        )}
-        
-        <div className="mt-4 text-xs text-muted-foreground">
-          Total detected: {detectedWallets.length} wallets
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wallet className="w-5 h-5" />
+            Wallet Detection Summary
+          </CardTitle>
+          <CardDescription>
+            Detected wallets in your browser
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{installedWallets.length}</div>
+              <div className="text-sm text-muted-foreground">Installed</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{availableWallets.length}</div>
+              <div className="text-sm text-muted-foreground">Available</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">{detectedWallets.length}</div>
+              <div className="text-sm text-muted-foreground">Total</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Installed Wallets */}
+      {installedWallets.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              Installed Wallets ({installedWallets.length})
+            </CardTitle>
+            <CardDescription>
+              Wallets detected in your browser
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {installedWallets.map((wallet) => (
+                <div key={wallet.id} className="p-4 border rounded-lg bg-green-50">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-2xl">{wallet.icon}</span>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{wallet.name}</h3>
+                      <p className="text-sm text-muted-foreground">{wallet.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    {getTypeBadge(wallet.type)}
+                    <Badge variant="secondary" className="bg-green-100 text-green-800">
+                      Installed
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Available Wallets */}
+      {availableWallets.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-blue-600" />
+              Available Wallets ({availableWallets.length})
+            </CardTitle>
+            <CardDescription>
+              Wallets you can install
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {availableWallets.map((wallet) => (
+                <div key={wallet.id} className="p-4 border rounded-lg">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-2xl">{wallet.icon}</span>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{wallet.name}</h3>
+                      <p className="text-sm text-muted-foreground">{wallet.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    {getTypeBadge(wallet.type)}
+                    {wallet.downloadUrl && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => window.open(wallet.downloadUrl, '_blank')}
+                      >
+                        <ExternalLink className="w-3 h-3 mr-1" />
+                        Install
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Refresh Button */}
+      <div className="text-center">
+        <Button onClick={detectWallets} variant="outline">
+          <Wallet className="w-4 h-4 mr-2" />
+          Refresh Detection
+        </Button>
+      </div>
+    </div>
   )
 }
