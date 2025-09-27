@@ -6,7 +6,11 @@ import Image from "next/image"
 import { WalletConnect } from "@/components/wallet-connect"
 import { ScoreClientPanel } from "./score-client-panel"
 import { IdentityVerification } from "@/components/identity-verification"
-import { SelfProtocolVerification } from "@/components/self-protocol-verification"
+// Note: removed the embedded scanner-based SelfProtocolVerification from home
+// to keep the homepage focused. Users will be able to start verification from
+// the verification page once their reputation (graph) score has been calculated.
+import { useAccount } from "wagmi"
+import { useReputation } from "@/hooks/use-reputation"
 import { SybilDemo } from "@/components/sybil-demo"
 import { ScoringExplanation } from "@/components/scoring-explanation"
 import {
@@ -30,6 +34,11 @@ import Link from "next/link"
 import logo from "@/public/logo.png" // ✅ Proper import
 
 export default function HomePage() {
+  const { address } = useAccount()
+  const { data: scoreData, isLoading: scoreLoading } = useReputation(address)
+
+  const scoreReady = !!scoreData && !scoreLoading
+
   return (
     <main className="container mx-auto max-w-6xl px-4 py-10">
       {/* Header */}
@@ -155,6 +164,7 @@ export default function HomePage() {
             </CardContent>
           </Card>
 
+          {/* Verification call-to-action: only show the start button after graph score is available */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -166,7 +176,33 @@ export default function HomePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <SelfProtocolVerification />
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Verification requires your reputation score to be available. Once the score is fetched from the graph, you can start the verification flow.
+                </p>
+
+                {!address ? (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">Connect your wallet to see your score and start verification.</p>
+                  </div>
+                ) : !scoreReady ? (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-700">Waiting for graph score to be computed…</p>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Link href="/verification">
+                      <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                        <Shield className="w-5 h-5 mr-2" />
+                        Start Verification
+                      </Button>
+                    </Link>
+                    <Link href="/verification">
+                      <Button size="lg" variant="outline">Why this step?</Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>

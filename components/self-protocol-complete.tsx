@@ -40,6 +40,18 @@ export function SelfProtocolComplete({ onVerificationComplete, onError }: SelfPr
       return
     }
 
+    // Prevent verification if another wallet is already verified in this browser
+    try {
+      const globalVerified = localStorage.getItem('self_verified_global')
+      if (globalVerified && globalVerified !== address) {
+        const msg = `This browser already has a verified wallet: ${globalVerified}. Connect that wallet to proceed or reset verification from the verified wallet.`
+        setError(msg)
+        return
+      }
+    } catch (e) {
+      console.warn('Could not read global verification marker', e)
+    }
+
     setIsLoading(true)
     setError(null)
 
@@ -67,6 +79,15 @@ export function SelfProtocolComplete({ onVerificationComplete, onError }: SelfPr
       if (result) {
         setVerificationResult(result)
         onVerificationComplete?.(result)
+        // Mark global verification when result arrives
+        try {
+          if (address) {
+            localStorage.setItem(`self_verification_${address}`, JSON.stringify(result))
+            localStorage.setItem('self_verified_global', address)
+          }
+        } catch (e) {
+          console.warn('Could not persist verification to localStorage', e)
+        }
       }
     } catch (err) {
       console.error("Error checking verification status:", err)
@@ -116,6 +137,17 @@ export function SelfProtocolComplete({ onVerificationComplete, onError }: SelfPr
     setVerificationResult(null)
     setError(null)
     setTimeLeft(0)
+    try {
+      if (address) {
+        localStorage.removeItem(`self_verification_${address}`)
+        const global = localStorage.getItem('self_verified_global')
+        if (global === address) {
+          localStorage.removeItem('self_verified_global')
+        }
+      }
+    } catch (e) {
+      console.warn('Could not clear verification marker from localStorage', e)
+    }
   }
 
   // Show verification result

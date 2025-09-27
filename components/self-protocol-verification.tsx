@@ -64,6 +64,7 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
   const [selfApp, setSelfApp] = useState<SelfApp | null>(null)
   const [verificationResult, setVerificationResult] = useState<any>(null)
   const [isVerified, setIsVerified] = useState(false)
+  const [blockedByOtherWallet, setBlockedByOtherWallet] = useState<string | null>(null)
 
   // Initialize Self Protocol app when wallet connects
   useEffect(() => {
@@ -99,6 +100,16 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
     }
 
     setSelfApp(app)
+
+    // Check if another wallet is already verified in this browser
+    try {
+      const globalVerified = localStorage.getItem('self_verified_global')
+      if (globalVerified && globalVerified !== address) {
+        setBlockedByOtherWallet(globalVerified)
+      }
+    } catch (e) {
+      console.warn('Could not read global verification marker', e)
+    }
   }, [address])
 
   // Generate nullifier for Sybil prevention
@@ -131,6 +142,11 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
     }
 
     localStorage.setItem(`self_verification_${address}`, JSON.stringify(verificationData))
+    try {
+      localStorage.setItem('self_verified_global', address)
+    } catch (e) {
+      console.warn('Could not set global verification marker', e)
+    }
   }
 
   if (!address) {
@@ -151,6 +167,19 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
             <Clock className="w-4 h-4 animate-spin" />
             <p className="text-muted-foreground">Initializing Self Protocol...</p>
           </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (blockedByOtherWallet) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Verification Blocked</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-red-700">This browser already has a verified wallet: <strong className="font-mono">{blockedByOtherWallet}</strong>. Connect that wallet to proceed or reset verification from the verified wallet.</p>
         </CardContent>
       </Card>
     )

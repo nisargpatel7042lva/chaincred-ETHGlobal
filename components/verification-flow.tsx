@@ -124,6 +124,19 @@ export function VerificationFlow() {
   useEffect(() => {
     if (isConnected && address) {
       updateStep('connect_wallet', true)
+
+      // Prevent verification if a different wallet has already been verified in this browser
+      try {
+        const globalVerified = localStorage.getItem('self_verified_global')
+        if (globalVerified && globalVerified !== address) {
+          setError(`This browser already has a verified wallet: ${globalVerified}. Connect that wallet to proceed or reset verification from the verified wallet.`)
+          // don't initialize the Self app for another wallet
+          return
+        }
+      } catch (e) {
+        console.warn('Could not read global verification marker', e)
+      }
+
       initializeSelfApp()
     }
   }, [isConnected, address])
@@ -195,6 +208,14 @@ export function VerificationFlow() {
       updateStep('proof_verification', true)
       updateStep('mint_sbt', false, true)
     }, 2000)
+    // Persist global marker so other wallets in this browser cannot re-verify
+    try {
+      if (address) {
+        localStorage.setItem('self_verified_global', address)
+      }
+    } catch (e) {
+      console.warn('Could not set global verification marker', e)
+    }
   }
 
   const handleVerificationError = (data: { error_code?: string; reason?: string } = {}) => {
@@ -241,6 +262,18 @@ export function VerificationFlow() {
       completed: false,
       current: step.id === 'connect_wallet'
     })))
+    // Clear persisted verification marker for this wallet only if it set the global marker
+    try {
+      if (address) {
+        localStorage.removeItem(`self_verification_${address}`)
+        const global = localStorage.getItem('self_verified_global')
+        if (global === address) {
+          localStorage.removeItem('self_verified_global')
+        }
+      }
+    } catch (e) {
+      console.warn('Could not clear verification marker from localStorage', e)
+    }
   }
 
   const currentStepIndex = verificationSteps.findIndex(step => step.current);
