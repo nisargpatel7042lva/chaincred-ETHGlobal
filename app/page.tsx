@@ -23,7 +23,10 @@ import {
   Users,
   Gift,
   Lock,
+  ArrowRight,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 import logo from "@/public/logo.png" // ✅ Proper import
 
 export default function HomePage() {
