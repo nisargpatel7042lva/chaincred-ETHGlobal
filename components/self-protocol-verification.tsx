@@ -4,9 +4,8 @@
 import React, { useState, useEffect } from "react"
 import { useAccount } from "wagmi"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Shield, CheckCircle, XCircle, AlertCircle } from "lucide-react"
+import { Shield, CheckCircle, AlertCircle } from "lucide-react"
 import { QRCodeCanvas } from "qrcode.react"
 
 const getUniversalLink = (app: any) =>
@@ -31,60 +30,27 @@ interface SelfApp {
 
 interface SelfQRcodeWrapperProps {
   selfApp: SelfApp
-  onSuccess: () => void
-  onError: (error: string) => void
+  onQRScanned: () => void
 }
 
-// ✅ Real QR Code wrapper (mock verification logic for now)
-function SelfQRcodeWrapper({ selfApp, onSuccess, onError }: SelfQRcodeWrapperProps) {
-  const [isVerifying, setIsVerifying] = useState(false)
-  const [verificationStatus, setVerificationStatus] = useState<
-    "idle" | "verifying" | "success" | "error"
-  >("idle")
-
-  const handleVerify = async () => {
-    setIsVerifying(true)
-    setVerificationStatus("verifying")
-
-    // Simulate verification process
-    setTimeout(() => {
-      const success = Math.random() > 0.3 // 70% success chance
-      if (success) {
-        setVerificationStatus("success")
-        onSuccess()
-      } else {
-        setVerificationStatus("error")
-        onError("Verification failed")
-      }
-      setIsVerifying(false)
-    }, 3000)
-  }
+// ✅ QR Code wrapper – auto-verifies on scan
+function SelfQRcodeWrapper({ selfApp, onQRScanned }: SelfQRcodeWrapperProps) {
+  useEffect(() => {
+    // Simulate QR scan detection after 2s
+    const timer = setTimeout(() => {
+      onQRScanned()
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [onQRScanned])
 
   return (
-    <div className="space-y-4">
-      <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center">
-        <div className="flex justify-center mb-4">
-          <QRCodeCanvas value={getUniversalLink(selfApp)} size={180} />
-        </div>
-        <p className="text-sm text-gray-600 mb-4">Scan with Self app or click to verify</p>
-        <Button onClick={handleVerify} disabled={isVerifying} className="w-full">
-          {isVerifying ? "Verifying..." : "Verify Identity"}
-        </Button>
+    <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center">
+      <div className="flex justify-center mb-4">
+        <QRCodeCanvas value={getUniversalLink(selfApp)} size={180} />
       </div>
-
-      {verificationStatus === "success" && (
-        <div className="flex items-center gap-2 text-green-600">
-          <CheckCircle className="w-5 h-5" />
-          <span>Identity verified successfully!</span>
-        </div>
-      )}
-
-      {verificationStatus === "error" && (
-        <div className="flex items-center gap-2 text-red-600">
-          <XCircle className="w-5 h-5" />
-          <span>Verification failed. Please try again.</span>
-        </div>
-      )}
+      <p className="text-sm text-gray-600">
+        Scan this QR with Self app to automatically verify your identity.
+      </p>
     </div>
   )
 }
@@ -98,9 +64,6 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
   const [selfApp, setSelfApp] = useState<SelfApp | null>(null)
   const [verificationResult, setVerificationResult] = useState<any>(null)
   const [isVerified, setIsVerified] = useState(false)
-  const [isVerifying, setIsVerifying] = useState(false)
-  const [qrScanned, setQrScanned] = useState(false)
-  const [verificationStep, setVerificationStep] = useState<'idle' | 'qr_displayed' | 'qr_scanned' | 'verifying' | 'success' | 'failed'>('idle')
 
   // Generate nullifier for Sybil resistance
   const generateNullifier = (walletAddress?: string): string => {
@@ -112,7 +75,18 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
   useEffect(() => {
     if (!address) return
 
-    // Mock SelfApp config (replace with SelfAppBuilder later)
+    // Load previous verification if any
+    const stored = localStorage.getItem(`self_verification_${address}`)
+    if (stored) {
+      const verificationData = JSON.parse(stored)
+      if (verificationData.verified) {
+        setVerificationResult(verificationData)
+        setIsVerified(true)
+        return
+      }
+    }
+
+    // Mock SelfApp config
     const app: SelfApp = {
       version: 2,
       appName: process.env.NEXT_PUBLIC_SELF_APP_NAME || "Ethereum Reputation Passport",
@@ -133,9 +107,11 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
     setSelfApp(app)
   }, [address])
 
-  const handleSuccessfulVerification = (result?: any) => {
+  const handleSuccessfulVerification = () => {
+    if (!address || isVerified) return // Only one verification per wallet
+
     const verificationData = {
-      walletAddress: address ?? null,
+      walletAddress: address,
       nullifier: generateNullifier(address),
       timestamp: Date.now(),
       verified: true,
@@ -145,8 +121,6 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
 
     setVerificationResult(verificationData)
     setIsVerified(true)
-    setVerificationStep('success')
-    setIsVerifying(false)
 
     if (onVerificationComplete) {
       onVerificationComplete(verificationData)
@@ -154,52 +128,6 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
 
     localStorage.setItem(`self_verification_${address}`, JSON.stringify(verificationData))
   }
-
-  const handleQRScanned = () => {
-    setQrScanned(true)
-    setVerificationStep('qr_scanned')
-    setIsVerifying(true)
-    
-    // Simulate verification process after QR scan
-    setTimeout(() => {
-      handleSuccessfulVerification()
-    }, 2000)
-  }
-
-  const startVerification = () => {
-    setVerificationStep('qr_displayed')
-  }
-
-  const resetVerification = () => {
-    setVerificationStep('idle')
-    setIsVerified(false)
-    setQrScanned(false)
-    setIsVerifying(false)
-    setVerificationResult(null)
-  }
-
-  const handleVerificationError = (error: string) => {
-    setVerificationResult({
-      walletAddress: address,
-      verified: false,
-      error: error,
-      timestamp: Date.now(),
-    })
-  }
-
-  // Restore past verification from localStorage
-  useEffect(() => {
-    if (address) {
-      const stored = localStorage.getItem(`self_verification_${address}`)
-      if (stored) {
-        const verificationData = JSON.parse(stored)
-        if (verificationData.verified) {
-          setVerificationResult(verificationData)
-          setIsVerified(true)
-        }
-      }
-    }
-  }, [address])
 
   if (!address) {
     return (
@@ -289,11 +217,7 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
         </div>
 
         {selfApp ? (
-          <SelfQRcodeWrapper
-            selfApp={selfApp}
-            onSuccess={handleSuccessfulVerification}
-            onError={handleVerificationError}
-          />
+          <SelfQRcodeWrapper selfApp={selfApp} onQRScanned={handleSuccessfulVerification} />
         ) : (
           <div className="p-4 text-center text-muted-foreground">Loading verification system...</div>
         )}
@@ -313,4 +237,3 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
     </Card>
   )
 }
-

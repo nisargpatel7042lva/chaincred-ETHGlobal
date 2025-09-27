@@ -1,20 +1,46 @@
 /* Ethereum Reputation Passport - Clear Step-by-Step Flow */
+"use client"
+
 import React from "react"
+import Image from "next/image"
 import { WalletConnect } from "@/components/wallet-connect"
 import { ScoreClientPanel } from "./score-client-panel"
 import { IdentityVerification } from "@/components/identity-verification"
 import { SelfProtocolVerification } from "@/components/self-protocol-verification"
 import { SybilDemo } from "@/components/sybil-demo"
 import { ScoringExplanation } from "@/components/scoring-explanation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, ArrowRight, Shield, Users, Gift, Lock } from "lucide-react"
+import {
+  CheckCircle,
+  Shield,
+  Users,
+  Gift,
+  Lock,
+} from "lucide-react"
+import logo from "@/public/logo.png" // ✅ Proper import
 
 export default function HomePage() {
   return (
     <main className="container mx-auto max-w-6xl px-4 py-10">
       {/* Header */}
       <header className="text-center mb-12">
+        <div className="flex justify-center mb-6 ">
+          <Image
+            src={logo}
+            alt="Reputation Passport Logo"
+            width={120}
+            height={120}
+            className="mx-auto rounded-full"
+            priority
+          />
+        </div>
         <h1 className="text-4xl md:text-5xl font-bold text-balance mb-4">
           Ethereum Reputation Passport
         </h1>
@@ -129,6 +155,7 @@ export default function HomePage() {
 
         {/* Right Column - What You Can Access */}
         <div className="space-y-6">
+          {/* DAO Voting */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -158,6 +185,7 @@ export default function HomePage() {
             </CardContent>
           </Card>
 
+          {/* Airdrop */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -187,6 +215,7 @@ export default function HomePage() {
             </CardContent>
           </Card>
 
+          {/* DeFi */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
