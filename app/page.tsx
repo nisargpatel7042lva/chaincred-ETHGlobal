@@ -3,6 +3,7 @@ import React from "react"
 import { WalletConnect } from "@/components/wallet-connect"
 import { ScoreClientPanel } from "./score-client-panel"
 import { IdentityVerification } from "@/components/identity-verification"
+import { SelfProtocolVerification } from "@/components/self-protocol-verification"
 import { SybilDemo } from "@/components/sybil-demo"
 import { ScoringExplanation } from "@/components/scoring-explanation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -117,11 +118,11 @@ export default function HomePage() {
                 Identity Verification
               </CardTitle>
               <CardDescription>
-                Prove you're a real human with zero-knowledge proofs
+                Prove you're a real human with Self Protocol and zero-knowledge proofs
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <IdentityVerification walletAddress="" />
+              <SelfProtocolVerification />
             </CardContent>
           </Card>
         </div>

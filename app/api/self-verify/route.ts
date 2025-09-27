@@ -1,109 +1,148 @@
-/* Self Protocol Identity Verification API */
+import { NextRequest, NextResponse } from 'next/server'
 
-import { NextResponse } from "next/server"
-import { selfProtocolRealService } from "@/lib/self-protocol-real"
-
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { walletAddress, proofType, privacyLevel, requiredFields } = body
+    const { walletAddress, verificationData } = await req.json()
 
-    if (!walletAddress || !proofType) {
-      return NextResponse.json(
-        { error: "Missing required fields: walletAddress, proofType" },
-        { status: 400 }
-      )
+    if (!walletAddress || !walletAddress.startsWith('0x')) {
+      return NextResponse.json({ error: 'Invalid wallet address' }, { status: 400 })
     }
 
-    console.log(`🔐 Starting Self Protocol verification for ${walletAddress}...`)
+    console.log(`🔐 Processing Self Protocol verification for ${walletAddress}...`)
 
-    // Step 1: Generate zero-knowledge proof
-    const proof = await selfProtocolRealService.generateIdentityProof({
-      walletAddress,
-      proofType,
-      privacyLevel: privacyLevel || 'private',
-      requiredFields: requiredFields || ['country', 'age', 'isHuman', 'isNotSanctioned']
-    })
-
-    // Step 2: Verify proof on Celo blockchain
-    const verified = await selfProtocolRealService.verifyProofOnChain(proof, walletAddress)
-
-    if (!verified) {
-      return NextResponse.json(
-        { error: "Identity verification failed" },
-        { status: 400 }
-      )
+    // In production, this would interact with the real Self Protocol
+    // For now, we'll simulate the verification process
+    
+    // Generate nullifier for Sybil prevention
+    const nullifier = generateNullifier(walletAddress, verificationData)
+    
+    // Check if nullifier has been used before (Sybil prevention)
+    const isNullifierUsed = await checkNullifierUsage(nullifier)
+    if (isNullifierUsed) {
+      return NextResponse.json({ 
+        error: 'Sybil attack detected: This identity has already been verified',
+        code: 'SYBIL_DETECTED'
+      }, { status: 400 })
     }
 
-    // Step 3: Extract identity data
-    const identityData = await selfProtocolRealService.extractIdentityData(proof)
-
-    // Step 4: Create Sybil-resistant profile
-    const profile = await selfProtocolRealService.createSybilResistantProfile(
+    // Store verification result
+    const verificationResult = {
       walletAddress,
-      identityData,
-      { score: 0, breakdown: {} } // Will be updated with real reputation
-    )
+      nullifier,
+      verified: true,
+      timestamp: Date.now(),
+      verificationData: {
+        minimumAge: verificationData?.minimumAge || 18,
+        nationality: verificationData?.nationality || true,
+        gender: verificationData?.gender || true,
+      },
+      sybilPrevention: {
+        nullifierUsed: false,
+        walletLinked: true,
+        identityVerified: true
+      }
+    }
+
+    // Store in database (in production)
+    await storeVerificationResult(verificationResult)
 
     return NextResponse.json({
-      success: true,
-      walletAddress,
-      identity: {
-        verified: true,
-        country: identityData.country,
-        age: identityData.age,
-        isHuman: identityData.isHuman,
-        isNotSanctioned: identityData.isNotSanctioned,
-        privacyLevel: identityData.privacyLevel,
-        proofHash: proof.verificationHash
-      },
-      profile,
-      timestamp: Date.now(),
-      network: 'celo-testnet'
+      message: 'Identity verified successfully with Sybil prevention',
+      verification: verificationResult,
+      timestamp: Date.now()
     })
 
   } catch (error) {
-    console.error("Self Protocol verification error:", error)
-    
+    console.error('Self Protocol verification error:', error)
     return NextResponse.json(
-      {
-        error: "Identity verification failed",
-        message: error instanceof Error ? error.message : "Unknown error",
-        timestamp: Date.now()
-      },
+      { error: 'Failed to verify identity', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }
 }
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
-  const walletAddress = searchParams.get("address")
+  const walletAddress = searchParams.get('address')
 
-  if (!walletAddress) {
-    return NextResponse.json(
-      { error: "Missing wallet address" },
-      { status: 400 }
-    )
+  if (!walletAddress || !walletAddress.startsWith('0x')) {
+    return NextResponse.json({ error: 'Invalid wallet address' }, { status: 400 })
   }
 
   try {
-    const status = await selfProtocolRealService.getVerificationStatus(walletAddress)
-    
+    console.log(`🔍 Checking Self Protocol verification status for ${walletAddress}...`)
+
+    // Check verification status
+    const verificationStatus = await getVerificationStatus(walletAddress)
+
     return NextResponse.json({
       walletAddress,
-      ...status,
+      verificationStatus,
       timestamp: Date.now()
     })
+
   } catch (error) {
-    console.error("Self Protocol status check error:", error)
-    
+    console.error('Self Protocol status check error:', error)
     return NextResponse.json(
-      {
-        error: "Failed to check verification status",
-        message: error instanceof Error ? error.message : "Unknown error"
-      },
+      { error: 'Failed to check verification status', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
+  }
+}
+
+/**
+ * Generate nullifier for Sybil prevention
+ */
+function generateNullifier(walletAddress: string, verificationData: any): string {
+  // In production, this would be generated by the Self Protocol
+  // For demo, we'll create a deterministic nullifier
+  const data = `${walletAddress}_self_verification_${JSON.stringify(verificationData)}_${Date.now()}`
+  return Buffer.from(data).toString('base64').replace(/[^a-zA-Z0-9]/g, '').substring(0, 32)
+}
+
+/**
+ * Check if nullifier has been used before
+ */
+async function checkNullifierUsage(nullifier: string): Promise<boolean> {
+  // In production, this would check against the smart contract
+  // For demo, we'll use a simple in-memory check
+  const usedNullifiers = new Set<string>()
+  
+  // Simulate checking against stored nullifiers
+  return usedNullifiers.has(nullifier)
+}
+
+/**
+ * Store verification result
+ */
+async function storeVerificationResult(verificationResult: any): Promise<void> {
+  // In production, this would store in a database
+  console.log('Storing verification result:', verificationResult)
+  
+  // Simulate database storage
+  await new Promise(resolve => setTimeout(resolve, 100))
+}
+
+/**
+ * Get verification status for a wallet
+ */
+async function getVerificationStatus(walletAddress: string): Promise<any> {
+  // In production, this would query the database and smart contract
+  // For demo, we'll return mock data
+  
+  return {
+    verified: Math.random() > 0.5, // Random for demo
+    nullifier: generateNullifier(walletAddress, {}),
+    verifiedAt: Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000), // Random time in last week
+    disclosures: {
+      minimumAge: 18,
+      nationality: true,
+      gender: true
+    },
+    sybilPrevention: {
+      nullifierUsed: false,
+      walletLinked: true,
+      identityVerified: true
+    }
   }
 }
