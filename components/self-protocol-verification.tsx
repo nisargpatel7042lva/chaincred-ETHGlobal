@@ -1,5 +1,5 @@
+/* Fresh Self Protocol Verification Component - Following Official SDK */
 "use client"
-// @ts-nocheck
 
 import React, { useState, useEffect } from "react"
 import { useAccount } from "wagmi"
@@ -65,14 +65,14 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
   const [verificationResult, setVerificationResult] = useState<any>(null)
   const [isVerified, setIsVerified] = useState(false)
 
-  // Generate nullifier for Sybil resistance
-  const generateNullifier = (walletAddress?: string): string => {
-    const base = walletAddress ?? "anonymous"
-    const data = `${base}_self_verification_${Date.now()}`
-    return btoa(data).replace(/[^a-zA-Z0-9]/g, "").substring(0, 32)
-  }
-
+  // Initialize Self Protocol app when wallet connects
   useEffect(() => {
+    if (isConnected && address) {
+      initializeSelfApp()
+    }
+  }, [isConnected, address])
+
+  const initializeSelfApp = () => {
     if (!address) return
 
     // Load previous verification if any
@@ -132,63 +132,20 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
   if (!address) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5" />
-            Identity Verification
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Connect your wallet to verify your identity with Self Protocol.
-          </p>
+        <CardContent className="p-6 text-center">
+          <p className="text-muted-foreground">Please connect your wallet to start verification</p>
         </CardContent>
       </Card>
     )
   }
 
-  if (isVerified && verificationResult) {
+  if (!selfApp) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-500" />
-            Identity Verified
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              Verified
-            </Badge>
-            <span className="text-sm text-muted-foreground">Sybil-resistant identity confirmed</span>
-          </div>
-
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Wallet:</span>
-              <span className="font-mono">{address}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Nullifier:</span>
-              <span className="font-mono text-xs">{verificationResult.nullifier}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Verified:</span>
-              <span>{new Date(verificationResult.timestamp).toLocaleString()}</span>
-            </div>
-          </div>
-
-          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-start gap-2">
-              <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium text-green-800">Identity Verified</p>
-                <p className="text-green-600">
-                  This wallet is now linked to a verified human identity. You can participate in DAO voting and claim airdrops.
-                </p>
-              </div>
-            </div>
+        <CardContent className="p-6 text-center">
+          <div className="flex items-center justify-center gap-2">
+            <Clock className="w-4 h-4 animate-spin" />
+            <p className="text-muted-foreground">Initializing Self Protocol...</p>
           </div>
         </CardContent>
       </Card>

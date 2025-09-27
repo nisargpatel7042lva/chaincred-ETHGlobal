@@ -50,28 +50,35 @@ export function SelfProtocolVerificationImproved({ onVerificationComplete }: Sel
   useEffect(() => {
     if (!address) return
 
-    // Check if already verified
-    const stored = localStorage.getItem(`self_verification_${address}`)
-    if (stored) {
-      try {
-        const verificationData = JSON.parse(stored)
-        if (verificationData.verified) {
-          setVerificationResult(verificationData)
-          setIsVerified(true)
-          setVerificationStep('success')
-          return
-        }
-      } catch (e) {
-        console.warn('Failed to parse stored verification data')
-      }
-    }
+    // DISABLED: Auto-verification from localStorage
+    // This was causing wallets to show as verified without going through the process
+    // const stored = localStorage.getItem(`self_verification_${address}`)
+    // if (stored) {
+    //   try {
+    //     const verificationData = JSON.parse(stored)
+    //     // Only restore if it's a complete verification with all required fields
+    //     if (verificationData.verified && verificationData.nullifier && verificationData.timestamp) {
+    //       setVerificationResult(verificationData)
+    //       setIsVerified(true)
+    //       setVerificationStep('success')
+    //       return
+    //     } else {
+    //       // Clear invalid stored data
+    //       localStorage.removeItem(`self_verification_${address}`)
+    //     }
+    //   } catch (e) {
+    //     console.warn('Failed to parse stored verification data')
+    //     // Clear corrupted stored data
+    //     localStorage.removeItem(`self_verification_${address}`)
+    //   }
+    // }
 
     // Mock SelfApp config (replace with SelfAppBuilder later)
     const app: SelfApp = {
       version: 2,
       appName: process.env.NEXT_PUBLIC_SELF_APP_NAME || "Ethereum Reputation Passport",
       scope: process.env.NEXT_PUBLIC_SELF_SCOPE || "reputation-passport",
-      endpoint: `${process.env.NEXT_PUBLIC_SELF_ENDPOINT}`,
+      endpoint: `${process.env.NEXT_PUBLIC_SELF_ENDPOINT}.toLowerCase()`,
       logoBase64: "https://i.postimg.cc/mrmVf9hm/self.png",
       userId: address,
       endpointType: "staging_https",
@@ -106,7 +113,8 @@ export function SelfProtocolVerificationImproved({ onVerificationComplete }: Sel
       onVerificationComplete(verificationData)
     }
 
-    localStorage.setItem(`self_verification_${address}`, JSON.stringify(verificationData))
+    // DISABLED: localStorage storage
+    // localStorage.setItem(`self_verification_${address}`, JSON.stringify(verificationData))
   }
 
   const handleQRScanned = () => {
@@ -130,9 +138,10 @@ export function SelfProtocolVerificationImproved({ onVerificationComplete }: Sel
     setQrScanned(false)
     setIsVerifying(false)
     setVerificationResult(null)
-    if (address) {
-      localStorage.removeItem(`self_verification_${address}`)
-    }
+    // DISABLED: localStorage removal
+    // if (address) {
+    //   localStorage.removeItem(`self_verification_${address}`)
+    // }
   }
 
   const handleVerificationError = (error: string) => {
