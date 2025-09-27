@@ -1,74 +1,198 @@
-/* New: SBT mint UI (stubbed on-chain call unless contract set) */
+// components/SbtMintCard.tsx
+
 "use client"
 
-import { useAccount, useWriteContract } from "wagmi"
+import { useEffect, useState } from "react"
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi"
+import { BrowserProvider } from "ethers"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { useState } from "react"
 import { toast } from "@/hooks/use-toast"
 
-const SBT_CONTRACT = process.env.NEXT_PUBLIC_SBT_CONTRACT_ADDRESS as `0x${string}` | undefined
+// Load from .env.local
+const SBT_CONTRACT = process.env.NEXT_PUBLIC_REPUTATION_PASSPORT_ADDRESS as `0x${string}` | undefined
 
-// Minimal placeholder ABI: replace with your real SBT contract ABI
 const SBT_ABI = [
   {
     type: "function",
-    name: "mint",
+    name: "mintReputationPassport",
     stateMutability: "nonpayable",
-    inputs: [
-      { name: "to", type: "address" },
-      { name: "score", type: "uint256" },
-    ],
+    inputs: [{ name: "explanation", type: "string" }],
     outputs: [],
   },
 ] as const
 
-export function SbtMintCard({ eligible, score }: { eligible: boolean; score: number }) {
-  const { address } = useAccount()
-  const { writeContractAsync, isPending } = useWriteContract()
-  const [txHash, setTxHash] = useState<string | null>(null)
+export function SbtMintCard({ score }: { score: number }) {
+  const { address, chain, isConnected } = useAccount()
+  const [hash, setHash] = useState<`0x${string}` | undefined>()
+  const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirmed" | "failed">("idle")
+  const [checking, setChecking] = useState(false)
 
-  const canMint = eligible && !!address
+  const eligible = score >= 70
+  const canMint = eligible && isConnected
 
-  async function onMint() {
+  const { writeContract, isPending: isSubmitting } = useWriteContract()
+  const { isLoading: isConfirming, isSuccess: isConfirmed, error: receiptError } = useWaitForTransactionReceipt({ hash })
+
+  const onMint = () => {
     if (!canMint) return
     if (!SBT_CONTRACT) {
-      toast({
-        title: "Contract not configured",
-        description: "Set NEXT_PUBLIC_SBT_CONTRACT_ADDRESS to enable on-chain minting. Simulating success for demo.",
+      return toast({
+        title: "Contract Not Configured",
+        description: "The contract address is missing in .env.local.",
+        variant: "destructive",
       })
-      setTxHash("0x-simulated")
-      return
     }
-    try {
-      const hash = await writeContractAsync({
+
+    writeContract(
+      {
         address: SBT_CONTRACT,
         abi: SBT_ABI,
-        functionName: "mint",
-        args: [address!, BigInt(score)],
-      })
-      setTxHash(hash)
-      toast({ title: "Transaction submitted", description: hash })
-    } catch (e: any) {
-      toast({ title: "Mint failed", description: e?.message ?? "Error" })
-    }
+        functionName: "mintReputationPassport",
+        args: ["Minting my on-chain reputation passport from the dApp."],
+      },
+      {
+        onSuccess: (txHash) => {
+          setHash(txHash)
+          setTxStatus("pending")
+          toast({ title: "Transaction Submitted", description: "Waiting for confirmation..." })
+        },
+        onError: (error: any) => {
+          setTxStatus("failed")
+          const msg = error?.message?.includes("User rejected the request")
+            ? "Transaction rejected by user."
+            : error?.shortMessage || "An unknown error occurred."
+          toast({ title: "Submission Failed", description: msg, variant: "destructive" })
+        },
+      }
+    )
   }
+
+  // Effect to update status when confirmed or failed
+  useEffect(() => {
+    if (isConfirmed) {
+      setTxStatus("confirmed")
+      toast({ title: "Mint Successful!", description: "Your Reputation Passport SBT has been minted." })
+    }
+    if (receiptError) {
+      setTxStatus("failed")
+      toast({ title: "Transaction Failed", description: receiptError?.message || "Unknown error.", variant: "destructive" })
+    }
+  }, [isConfirmed, receiptError])
+
+  const explorerUrl = chain?.blockExplorers?.default.url
 
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle className="text-balance">Mint Reputation Passport SBT</CardTitle>
-        <CardDescription>Eligible if score ≥ 70</CardDescription>
+        <CardTitle>Mint Reputation Passport SBT</CardTitle>
+        <CardDescription>Your score: {score} — Eligible if ≥ 70</CardDescription>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground">
-          {eligible ? "You are eligible to mint." : "Not eligible yet. Increase your on-chain activity."}
+          {eligible
+            ? "You are eligible to mint this non-transferable token."
+            : "You are not eligible yet. Increase your on-chain activity."}
         </p>
-        {txHash && <p className="mt-2 text-xs break-all">Tx: {txHash}</p>}
+
+        {hash && (
+          <div className="mt-4 text-xs">
+            <p className="font-medium">Transaction Hash:</p>
+            {explorerUrl ? (
+              <a
+                href={`${explorerUrl}/tx/${hash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline break-all"
+              >
+                {hash}
+              </a>
+            ) : (
+              <p className="break-all">{hash}</p>
+            )}
+            <p className="mt-1">Status: {txStatus.charAt(0).toUpperCase() + txStatus.slice(1)}</p>
+            <div className="mt-2 flex gap-2">
+              <Button
+                onClick={async () => {
+                  try {
+                    setChecking(true)
+                    // run diagnostics
+                    const anyWindow: any = window
+                    const results: Record<string, any> = {}
+
+                    if (anyWindow?.ethereum) {
+                      try {
+                        const provider = new BrowserProvider(anyWindow.ethereum)
+                        const tx = await provider.getTransaction(hash)
+                        const receipt = await provider.getTransactionReceipt(hash)
+                        results.injected = { tx, receipt }
+                        console.info('injected provider result', results.injected)
+                        toast({ title: 'Checked injected provider', description: tx ? 'Injected provider knows about the tx' : 'Injected provider does NOT know about the tx' })
+                      } catch (e) {
+                        console.warn('Injected provider diagnostic failed', e)
+                        results.injected = { error: String(e) }
+                        toast({ title: 'Injected provider error', description: String(e), variant: 'destructive' })
+                      }
+                    }
+
+                    const publicRpc = process.env.NEXT_PUBLIC_ALCHEMY_MAINNET_URL || process.env.NEXT_PUBLIC_INFURA_MAINNET_URL
+                    if (publicRpc) {
+                      try {
+                        const { JsonRpcProvider } = await import('ethers')
+                        const rpcProvider = new (JsonRpcProvider as any)(publicRpc)
+                        const tx = await rpcProvider.getTransaction(hash)
+                        const receipt = await rpcProvider.getTransactionReceipt(hash)
+                        results.public = { tx, receipt }
+                        console.info('public rpc result', results.public)
+                        toast({ title: 'Checked public RPC', description: tx ? 'Public RPC knows about the tx' : 'Public RPC does NOT know about the tx' })
+                      } catch (e) {
+                        console.warn('Public RPC diagnostic failed', e)
+                        results.public = { error: String(e) }
+                      }
+                    }
+
+                    if (process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY) {
+                      try {
+                        const key = process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY
+                        const urls = [
+                          `https://api.etherscan.io/api?module=proxy&action=eth_getTransactionByHash&txhash=${hash}&apikey=${key}`,
+                          `https://api-sepolia.etherscan.io/api?module=proxy&action=eth_getTransactionByHash&txhash=${hash}&apikey=${key}`,
+                        ]
+                        for (const url of urls) {
+                          try {
+                            const res = await fetch(url)
+                            const json = await res.json()
+                            results[url.includes('sepolia') ? 'etherscan_sepolia' : 'etherscan_main'] = json
+                            console.info('etherscan probe', url, json)
+                            if (json?.result) {
+                              toast({ title: 'Etherscan', description: 'Etherscan reports the tx exists. Open the explorer.' })
+                              break
+                            }
+                          } catch (e) {
+                            console.warn('Etherscan probe failed for', url, e)
+                          }
+                        }
+                      } catch (e) {
+                        console.warn('Etherscan diagnostic failed', e)
+                      }
+                    }
+
+                    console.log('tx diagnostics', results)
+                  } finally {
+                    setChecking(false)
+                  }
+                }}
+                disabled={checking}
+              >
+                {checking ? 'Checking…' : 'Check transaction'}
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
       <CardFooter>
-        <Button onClick={onMint} disabled={!canMint || isPending}>
-          {isPending ? "Minting..." : "Mint SBT"}
+        <Button onClick={onMint} disabled={!canMint || isSubmitting || isConfirming || txStatus === "pending"}>
+          {isSubmitting ? "Confirm in wallet..." : isConfirming ? "Minting..." : "Mint SBT"}
         </Button>
       </CardFooter>
     </Card>
