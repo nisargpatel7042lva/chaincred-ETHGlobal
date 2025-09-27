@@ -87,10 +87,103 @@ export function pseudoScore(address: string): ScoreBreakdown {
 }
 
 /**
- * Legacy score combination function (kept for fallback)
+ * Enhanced fair scoring algorithm with multiple paths to reputation
  */
 export function combineScore(b: ScoreBreakdown): number {
-  // Simple weighted formula
-  const score = 0.4 * b.walletAge + 0.3 * b.daoVotes + 0.3 * b.defiTxs
-  return Math.round(Math.min(100, Math.max(0, score)))
+  // Multiple scoring paths to ensure fairness
+  const paths = [
+    calculateTraditionalPath(b),    // Traditional on-chain activity
+    calculateNewUserPath(b),        // New user friendly path
+    calculateCommunityPath(b),      // Community participation path
+    calculateDeFiPath(b),           // DeFi specialist path
+  ]
+  
+  // Take the highest score from any path
+  const maxScore = Math.max(...paths)
+  
+  // Apply fairness adjustments
+  const adjustedScore = applyFairnessAdjustments(maxScore, b)
+  
+  return Math.round(Math.min(100, Math.max(0, adjustedScore)))
+}
+
+/**
+ * Traditional scoring path (existing users)
+ */
+function calculateTraditionalPath(b: ScoreBreakdown): number {
+  return 0.3 * b.walletAge + 0.25 * b.daoVotes + 0.25 * b.defiTxs + 0.2 * (b.totalTxs || 0)
+}
+
+/**
+ * New user friendly path (recent wallets)
+ */
+function calculateNewUserPath(b: ScoreBreakdown): number {
+  // New users can get up to 60 points through activity
+  const activityScore = Math.min(60, (b.defiTxs * 3) + (b.daoVotes * 5))
+  
+  // Bonus for recent activity
+  const recentActivityBonus = (b.lastActivity || 0) > (Date.now() / 1000 - 7 * 24 * 60 * 60) ? 10 : 0
+  
+  return activityScore + recentActivityBonus
+}
+
+/**
+ * Community participation path
+ */
+function calculateCommunityPath(b: ScoreBreakdown): number {
+  // DAO participation is heavily weighted
+  const daoScore = Math.min(50, b.daoVotes * 8)
+  
+  // Contract diversity shows engagement
+  const diversityScore = Math.min(20, (b.uniqueContracts || 0) * 2)
+  
+  // Wallet age still matters but less
+  const ageScore = Math.min(30, b.walletAge * 0.5)
+  
+  return daoScore + diversityScore + ageScore
+}
+
+/**
+ * DeFi specialist path
+ */
+function calculateDeFiPath(b: ScoreBreakdown): number {
+  // Heavy DeFi activity
+  const defiScore = Math.min(60, b.defiTxs * 4)
+  
+  // Contract diversity in DeFi
+  const diversityScore = Math.min(25, (b.uniqueContracts || 0) * 3)
+  
+  // Some age requirement but not too strict
+  const ageScore = Math.min(15, b.walletAge * 0.3)
+  
+  return defiScore + diversityScore + ageScore
+}
+
+/**
+ * Apply fairness adjustments to prevent exclusion
+ */
+function applyFairnessAdjustments(score: number, b: ScoreBreakdown): number {
+  let adjustedScore = score
+  
+  // Minimum score guarantee for active wallets
+  if ((b.defiTxs > 0 || b.daoVotes > 0) && b.walletAge > 0) {
+    adjustedScore = Math.max(adjustedScore, 25) // Minimum 25 for any activity
+  }
+  
+  // New user boost (wallets < 30 days old)
+  if (b.walletAge < 30 && (b.defiTxs > 5 || b.daoVotes > 1)) {
+    adjustedScore += 15 // Boost for new active users
+  }
+  
+  // Long-term user bonus
+  if (b.walletAge > 365) {
+    adjustedScore += 10 // Bonus for 1+ year old wallets
+  }
+  
+  // High activity bonus
+  if ((b.totalTxs || 0) > 100) {
+    adjustedScore += 5 // Bonus for high transaction volume
+  }
+  
+  return adjustedScore
 }

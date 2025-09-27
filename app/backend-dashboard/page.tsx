@@ -196,12 +196,13 @@ export default function BackendDashboard() {
                   <span className="font-medium">{service.name}</span>
                 </div>
                 <div className="text-right">
-                  {service.responseTime !== undefined && (
+                  {service.responseTime && (
                     <div className="text-sm text-muted-foreground">
                       {service.responseTime}ms
                     </div>
                   )}
-                  <Badge variant={service.status === 'active' ? 'default' : 'destructive'}>                    {service.status}
+                  <Badge variant={service.status === 'active' ? 'default' : 'destructive'}>
+                    {service.status}
                   </Badge>
                 </div>
               </div>

@@ -267,41 +267,151 @@ function getFallbackWalletInfo(address: string) {
 }
 
 /**
- * Calculate reputation score from real wallet activity
+ * Calculate reputation score from real wallet activity - FAIR VERSION
  */
 export function calculateReputationScore(activity: WalletActivity): number {
   const { walletAge, daoVotes, defiTxs, totalTxs, uniqueContracts, lastActivity } = activity;
   
-  // Enhanced scoring algorithm
-  let score = 0;
+  // Multiple scoring paths to ensure fairness
+  const paths = [
+    calculateTraditionalPath(activity),    // Traditional on-chain activity
+    calculateNewUserPath(activity),        // New user friendly path
+    calculateCommunityPath(activity),      // Community participation path
+    calculateDeFiPath(activity),           // DeFi specialist path
+  ];
   
-  // Wallet age component (0-40 points)
-  const ageScore = Math.min(40, (walletAge / 365) * 40);
-  score += ageScore;
+  // Take the highest score from any path
+  let score = Math.max(...paths);
+  
+  // Apply fairness adjustments
+  score = applyFairnessAdjustments(score, activity);
+  
+  return Math.round(Math.min(100, Math.max(0, score)));
+}
+
+/**
+ * Traditional scoring path (existing users)
+ */
+function calculateTraditionalPath(activity: WalletActivity): number {
+  const { walletAge, daoVotes, defiTxs, totalTxs } = activity;
+  
+  // Wallet age component (0-30 points) - reduced from 40
+  const ageScore = Math.min(30, (walletAge / 365) * 30);
   
   // DAO participation component (0-25 points)
   const daoScore = Math.min(25, daoVotes * 2.5);
-  score += daoScore;
   
-  // DeFi activity component (0-20 points)
-  const defiScore = Math.min(20, (defiTxs / 10) * 20);
-  score += defiScore;
+  // DeFi activity component (0-25 points) - increased from 20
+  const defiScore = Math.min(25, (defiTxs / 10) * 25);
   
-  // Transaction volume component (0-10 points)
-  const txScore = Math.min(10, (totalTxs / 100) * 10);
-  score += txScore;
+  // Transaction volume component (0-20 points) - increased from 10
+  const txScore = Math.min(20, (totalTxs / 100) * 20);
   
-  // Contract diversity component (0-5 points)
-  const diversityScore = Math.min(5, (uniqueContracts / 20) * 5);
-  score += diversityScore;
+  return ageScore + daoScore + defiScore + txScore;
+}
+
+/**
+ * New user friendly path (recent wallets)
+ */
+function calculateNewUserPath(activity: WalletActivity): number {
+  const { walletAge, daoVotes, defiTxs, lastActivity } = activity;
   
-  // Recent activity bonus/penalty
+  // New users can get up to 70 points through activity
+  const activityScore = Math.min(70, (defiTxs * 4) + (daoVotes * 8));
+  
+  // Bonus for recent activity (last 7 days)
   const daysSinceLastActivity = (Date.now() / 1000 - lastActivity) / (24 * 60 * 60);
-  if (daysSinceLastActivity < 7) {
-    score += 2; // Active wallet bonus
-  } else if (daysSinceLastActivity > 90) {
-    score -= 5; // Dormant wallet penalty
+  const recentActivityBonus = daysSinceLastActivity < 7 ? 15 : 0;
+  
+  // New user boost (wallets < 90 days old)
+  const newUserBoost = walletAge < 90 ? 10 : 0;
+  
+  return activityScore + recentActivityBonus + newUserBoost;
+}
+
+/**
+ * Community participation path
+ */
+function calculateCommunityPath(activity: WalletActivity): number {
+  const { walletAge, daoVotes, uniqueContracts } = activity;
+  
+  // DAO participation is heavily weighted (0-50 points)
+  const daoScore = Math.min(50, daoVotes * 10);
+  
+  // Contract diversity shows engagement (0-25 points)
+  const diversityScore = Math.min(25, uniqueContracts * 2.5);
+  
+  // Wallet age still matters but less (0-25 points)
+  const ageScore = Math.min(25, walletAge * 0.5);
+  
+  return daoScore + diversityScore + ageScore;
+}
+
+/**
+ * DeFi specialist path
+ */
+function calculateDeFiPath(activity: WalletActivity): number {
+  const { walletAge, defiTxs, uniqueContracts, totalTxs } = activity;
+  
+  // Heavy DeFi activity (0-50 points)
+  const defiScore = Math.min(50, defiTxs * 5);
+  
+  // Contract diversity in DeFi (0-25 points)
+  const diversityScore = Math.min(25, uniqueContracts * 3);
+  
+  // Transaction volume (0-15 points)
+  const txScore = Math.min(15, (totalTxs / 50) * 15);
+  
+  // Some age requirement but not too strict (0-10 points)
+  const ageScore = Math.min(10, walletAge * 0.2);
+  
+  return defiScore + diversityScore + txScore + ageScore;
+}
+
+/**
+ * Apply fairness adjustments to prevent exclusion
+ */
+function applyFairnessAdjustments(score: number, activity: WalletActivity): number {
+  const { walletAge, daoVotes, defiTxs, totalTxs, lastActivity } = activity;
+  
+  let adjustedScore = score;
+  
+  // Minimum score guarantee for active wallets
+  if ((defiTxs > 0 || daoVotes > 0) && walletAge > 0) {
+    adjustedScore = Math.max(adjustedScore, 30); // Minimum 30 for any activity
   }
   
-  return Math.round(Math.min(100, Math.max(0, score)));
+  // New user boost (wallets < 30 days old with activity)
+  if (walletAge < 30 && (defiTxs > 3 || daoVotes > 1)) {
+    adjustedScore += 20; // Boost for new active users
+  }
+  
+  // Long-term user bonus
+  if (walletAge > 365) {
+    adjustedScore += 15; // Bonus for 1+ year old wallets
+  }
+  
+  // High activity bonus
+  if (totalTxs > 50) {
+    adjustedScore += 10; // Bonus for moderate transaction volume
+  }
+  
+  if (totalTxs > 200) {
+    adjustedScore += 5; // Additional bonus for high volume
+  }
+  
+  // Recent activity bonus
+  const daysSinceLastActivity = (Date.now() / 1000 - lastActivity) / (24 * 60 * 60);
+  if (daysSinceLastActivity < 3) {
+    adjustedScore += 5; // Very recent activity
+  } else if (daysSinceLastActivity < 7) {
+    adjustedScore += 3; // Recent activity
+  }
+  
+  // Penalty for completely dormant wallets (but not too harsh)
+  if (daysSinceLastActivity > 180) {
+    adjustedScore -= 10; // Only penalize very dormant wallets
+  }
+  
+  return adjustedScore;
 }

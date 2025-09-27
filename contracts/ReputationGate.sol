@@ -5,6 +5,13 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./ReputationPassport.sol";
 
+// Self Protocol integration interface
+interface ISelfProtocol {
+    function verifyIdentity(address user) external view returns (bool);
+    function isVerifiedHuman(address user) external view returns (bool);
+    function getIdentityHash(address user) external view returns (bytes32);
+}
+
 /**
  * @title ReputationGate
  * @dev Contract for gating access based on reputation scores
@@ -15,10 +22,14 @@ contract ReputationGate is Ownable, ReentrancyGuard {
     // Reference to the reputation passport contract
     ReputationPassport public immutable reputationPassport;
     
+    // Reference to Self Protocol for identity verification
+    ISelfProtocol public selfProtocol;
+    
     // Struct to store gate configuration
     struct GateConfig {
         uint256 minScore;
         bool isActive;
+        bool requiresIdentityVerification; // NEW: Self Protocol integration
         string description;
         uint256 createdAt;
     }
@@ -53,19 +64,22 @@ contract ReputationGate is Ownable, ReentrancyGuard {
         address indexed user
     );
     
-    constructor(address _reputationPassport) Ownable() {
+    constructor(address _reputationPassport, address _selfProtocol) Ownable() {
         reputationPassport = ReputationPassport(_reputationPassport);
+        selfProtocol = ISelfProtocol(_selfProtocol);
     }
     
     /**
-     * @dev Create a new gate
+     * @dev Create a new gate with optional identity verification
      * @param gateId Unique identifier for the gate
      * @param minScore Minimum reputation score required
+     * @param requiresIdentityVerification Whether Self Protocol verification is required
      * @param description Description of the gate
      */
     function createGate(
         bytes32 gateId,
         uint256 minScore,
+        bool requiresIdentityVerification,
         string memory description
     ) external onlyOwner {
         require(gates[gateId].createdAt == 0, "Gate already exists");
@@ -74,6 +88,7 @@ contract ReputationGate is Ownable, ReentrancyGuard {
         gates[gateId] = GateConfig({
             minScore: minScore,
             isActive: true,
+            requiresIdentityVerification: requiresIdentityVerification,
             description: description,
             createdAt: block.timestamp
         });
@@ -121,7 +136,23 @@ contract ReputationGate is Ownable, ReentrancyGuard {
         
         // Check if user's score meets the minimum requirement
         uint256 userScore = reputationPassport.getScore(user);
-        return userScore >= gate.minScore;
+        if (userScore < gate.minScore) {
+            return false;
+        }
+        
+        // Check Self Protocol identity verification if required
+        if (gate.requiresIdentityVerification) {
+            if (!selfProtocol.verifyIdentity(user)) {
+                return false;
+            }
+            
+            // Additional check: ensure user is verified as human
+            if (!selfProtocol.isVerifiedHuman(user)) {
+                return false;
+            }
+        }
+        
+        return true;
     }
     
     /**
@@ -182,5 +213,36 @@ contract ReputationGate is Ownable, ReentrancyGuard {
      */
     function hasReputationPassport(address user) external view returns (bool) {
         return reputationPassport.hasReputationPassport(user);
+    }
+    
+    /**
+     * @dev Get comprehensive access information for a user
+     * @param gateId The gate ID
+     * @param user The user address
+     * @return hasAccess Whether user has access
+     * @return score User's reputation score
+     * @return isIdentityVerified Whether user is identity verified
+     * @return isHumanVerified Whether user is verified as human
+     * @return requiresIdentityVerification Whether gate requires identity verification
+     */
+    function getAccessInfo(bytes32 gateId, address user) external view returns (
+        bool hasAccess,
+        uint256 score,
+        bool isIdentityVerified,
+        bool isHumanVerified,
+        bool requiresIdentityVerification
+    ) {
+        GateConfig memory gate = gates[gateId];
+        requiresIdentityVerification = gate.requiresIdentityVerification;
+        
+        if (!reputationPassport.hasReputationPassport(user)) {
+            return (false, 0, false, false, requiresIdentityVerification);
+        }
+        
+        score = reputationPassport.getScore(user);
+        isIdentityVerified = selfProtocol.verifyIdentity(user);
+        isHumanVerified = selfProtocol.isVerifiedHuman(user);
+        
+        hasAccess = hasAccessToGate(gateId, user);
     }
 }

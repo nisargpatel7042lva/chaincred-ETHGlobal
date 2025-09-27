@@ -263,23 +263,19 @@ export class ZeroGAIEnhancedService {
     const recommendations: string[] = []
 
     // Advanced pattern analysis
-    const reasoning: string[] = []
-    const recommendations: string[] = []
-    let confidence = 0.8
-
     if (walletAge > 365 && daoVotes > 10) {
       reasoning.push('Established long-term participant with strong governance engagement')
-      confidence += 0.1
+      analysis.confidence += 0.1
     }
 
     if (defiTxs > 50 && uniqueContracts > 20) {
       reasoning.push('Active DeFi user with diverse protocol interactions')
-      confidence += 0.1
+      analysis.confidence += 0.1
     }
 
     if (totalTxs > 200 && walletAge > 180) {
       reasoning.push('High transaction volume indicates active wallet usage')
-      confidence += 0.05
+      analysis.confidence += 0.05
     }
 
     // Generate comprehensive explanation
@@ -306,10 +302,11 @@ export class ZeroGAIEnhancedService {
 
     return {
       explanation,
-      confidence: Math.min(0.95, confidence),
+      confidence: Math.min(0.95, analysis.confidence),
       reasoning,
       recommendations
-    }  }
+    }
+  }
 
   /**
    * Analyze risk factors
