@@ -84,6 +84,7 @@ export function SelfProtocolComplete({ onVerificationComplete, onError }: SelfPr
           if (address) {
             localStorage.setItem(`self_verification_${address}`, JSON.stringify(result))
             localStorage.setItem('self_verified_global', address)
+            try { window.dispatchEvent(new Event('selfVerificationChanged')) } catch (e) { /* ignore */ }
           }
         } catch (e) {
           console.warn('Could not persist verification to localStorage', e)
@@ -148,6 +149,7 @@ export function SelfProtocolComplete({ onVerificationComplete, onError }: SelfPr
     } catch (e) {
       console.warn('Could not clear verification marker from localStorage', e)
     }
+    try { window.dispatchEvent(new Event('selfVerificationChanged')) } catch (e) { /* ignore */ }
   }
 
   // Show verification result

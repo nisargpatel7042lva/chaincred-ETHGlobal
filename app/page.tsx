@@ -36,6 +36,54 @@ import logo from "@/public/logo.png" // ✅ Proper import
 export default function HomePage() {
   const { address } = useAccount()
   const { data: scoreData, isLoading: scoreLoading } = useReputation(address)
+  const [isVerified, setIsVerified] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!address) {
+      setIsVerified(false)
+      return
+    }
+
+    try {
+      const stored = localStorage.getItem(`self_verification_${address}`)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        setIsVerified(parsed?.verified === true)
+        return
+      }
+      const global = localStorage.getItem('self_verified_global')
+      setIsVerified(!!global && global.toLowerCase() === address.toLowerCase())
+    } catch (e) {
+      console.warn('Could not read verification state from localStorage', e)
+      setIsVerified(false)
+    }
+  }, [address])
+
+  // live update when verification state changes in other components/tabs
+  React.useEffect(() => {
+    const handler = () => {
+      if (!address) return
+      try {
+        const stored = localStorage.getItem(`self_verification_${address}`)
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          setIsVerified(parsed?.verified === true)
+          return
+        }
+        const global = localStorage.getItem('self_verified_global')
+        setIsVerified(!!global && global.toLowerCase() === address.toLowerCase())
+      } catch (e) {
+        setIsVerified(false)
+      }
+    }
+
+    window.addEventListener('selfVerificationChanged', handler)
+    window.addEventListener('storage', handler)
+    return () => {
+      window.removeEventListener('selfVerificationChanged', handler)
+      window.removeEventListener('storage', handler)
+    }
+  }, [address])
 
   const scoreReady = !!scoreData && !scoreLoading
 
@@ -62,13 +110,13 @@ export default function HomePage() {
         <div className="flex flex-col items-center gap-6">
           <WalletConnect />
           <div className="flex flex-col sm:flex-row gap-3">
-            <Link href="/verification">
+            {/* <Link href="/verification">
               <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                 <Shield className="w-5 h-5 mr-2" />
                 Start Complete Verification
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-            </Link>
+            </Link> */}
             <Link href="/deployment-status">
               <Button size="lg" variant="outline" className="border-orange-600 text-orange-600 hover:bg-orange-50">
                 <CheckCircle className="w-5 h-5 mr-2" />
@@ -188,6 +236,11 @@ export default function HomePage() {
                 ) : !scoreReady ? (
                   <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-sm text-blue-700">Waiting for graph score to be computed…</p>
+                  </div>
+                ) : isVerified ? (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+                    <p className="font-medium text-green-800">Wallet Verified</p>
+                    <p className="text-sm text-green-600">This wallet has already completed identity verification. You can mint if eligible.</p>
                   </div>
                 ) : (
                   <div className="flex gap-2">

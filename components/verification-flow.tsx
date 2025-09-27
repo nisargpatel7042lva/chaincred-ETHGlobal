@@ -125,18 +125,51 @@ export function VerificationFlow() {
     if (isConnected && address) {
       updateStep('connect_wallet', true)
 
-      // Prevent verification if a different wallet has already been verified in this browser
       try {
+        // If this wallet was already verified in this browser, skip verification steps and enable mint
+        const stored = localStorage.getItem(`self_verification_${address}`)
+        const alreadyMinted = localStorage.getItem(`sbt_minted_${address}`) === 'true'
         const globalVerified = localStorage.getItem('self_verified_global')
+
+        if (stored) {
+          // parse stored verification and mark steps as completed
+          try {
+            const verificationData = JSON.parse(stored)
+            if (verificationData?.verified) {
+              setVerificationResult(verificationData)
+              // mark connect and verify steps completed
+              updateStep('connect_wallet', true)
+              updateStep('initialize_self', true)
+              updateStep('scan_qr', true)
+              updateStep('proof_verification', true)
+              // If user hasn't minted, enable mint step
+              if (!alreadyMinted) {
+                updateStep('mint_sbt', false, true)
+              } else {
+                // user already minted — mark mint completed and do not show mint UI
+                updateStep('mint_sbt', true)
+                setSbtMinted(true)
+              }
+              // skip initializing the Self app
+              return
+            }
+          } catch (e) {
+            console.warn('Could not parse per-wallet verification', e)
+          }
+        }
+
+        // Prevent verification if a different wallet has already been verified in this browser
         if (globalVerified && globalVerified !== address) {
           setError(`This browser already has a verified wallet: ${globalVerified}. Connect that wallet to proceed or reset verification from the verified wallet.`)
           // don't initialize the Self app for another wallet
           return
         }
+
       } catch (e) {
-        console.warn('Could not read global verification marker', e)
+        console.warn('Could not read verification markers', e)
       }
 
+      // No existing verification for this wallet — initialize the Self app
       initializeSelfApp()
     }
   }, [isConnected, address])
@@ -212,6 +245,20 @@ export function VerificationFlow() {
     try {
       if (address) {
         localStorage.setItem('self_verified_global', address)
+        // Also persist a per-wallet verification record so mint UI can detect it
+        const verificationData = {
+          walletAddress: address,
+          verified: true,
+          timestamp: Date.now(),
+          proof: data || null,
+        }
+        localStorage.setItem(`self_verification_${address}`, JSON.stringify(verificationData))
+        // Notify same-window listeners that verification state changed
+        try {
+          window.dispatchEvent(new Event('selfVerificationChanged'))
+        } catch (e) {
+          // ignore
+        }
       }
     } catch (e) {
       console.warn('Could not set global verification marker', e)
@@ -269,6 +316,11 @@ export function VerificationFlow() {
         const global = localStorage.getItem('self_verified_global')
         if (global === address) {
           localStorage.removeItem('self_verified_global')
+        }
+        try {
+          window.dispatchEvent(new Event('selfVerificationChanged'))
+        } catch (e) {
+          // ignore
         }
       }
     } catch (e) {
@@ -375,11 +427,20 @@ export function VerificationFlow() {
           isVerificationComplete={isVerificationComplete}
           verificationData={verificationResult}
           contractAddress={getContractAddress('ReputationPassport', chain?.id)}
-          onMintSuccess={(txHash) => {
-            console.log('SBT minted successfully:', txHash)
-            setSbtMinted(true)
-            updateStep('mint_sbt', true)
-          }}
+            onMintSuccess={(txHash) => {
+              console.log('SBT minted successfully:', txHash)
+              setSbtMinted(true)
+              updateStep('mint_sbt', true)
+              try {
+                if (address) {
+                  localStorage.setItem(`sbt_minted_${address}`, 'true')
+                  // notify listeners
+                  try { window.dispatchEvent(new Event('selfVerificationChanged')) } catch (e) { /* ignore */ }
+                }
+              } catch (e) {
+                console.warn('Could not persist SBT minted flag', e)
+              }
+            }}
         />
       )}
 

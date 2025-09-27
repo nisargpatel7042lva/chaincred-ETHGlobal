@@ -29,10 +29,44 @@ export function SbtMintCard({ score }: { score: number }) {
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirmed" | "failed">("idle")
   const [checking, setChecking] = useState(false)
   const [isIdentityVerified, setIsIdentityVerified] = useState(false)
+  const [isSbtMintedFlag, setIsSbtMintedFlag] = useState(false)
 
   // Check if user is identity verified
   useEffect(() => {
-    if (address) {
+    const check = () => {
+      if (!address) return setIsIdentityVerified(false)
+      try {
+        const stored = localStorage.getItem(`self_verification_${address}`)
+        if (stored) {
+          const verificationData = JSON.parse(stored)
+          const verified = verificationData?.verified === true
+          setIsIdentityVerified(verified)
+          console.debug('SbtMintCard: found per-wallet verification:', verified)
+          return
+        }
+        // fallback: check global marker
+        const global = localStorage.getItem('self_verified_global')
+        if (global && global.toLowerCase() === address.toLowerCase()) {
+          setIsIdentityVerified(true)
+          console.debug('SbtMintCard: verified via global marker')
+          // check minted flag too
+          const minted = localStorage.getItem(`sbt_minted_${address}`) === 'true'
+          setIsSbtMintedFlag(minted)
+          return
+        }
+      } catch (e) {
+        console.warn('SbtMintCard: error reading verification from storage', e)
+      }
+      setIsIdentityVerified(false)
+    }
+
+    check()
+  }, [address])
+
+  // Listen for verification changes in other components in the same window
+  useEffect(() => {
+    const handler = () => {
+      if (!address) return
       const stored = localStorage.getItem(`self_verification_${address}`)
       if (stored) {
         try {
@@ -45,10 +79,54 @@ export function SbtMintCard({ score }: { score: number }) {
         setIsIdentityVerified(false)
       }
     }
+
+    window.addEventListener('selfVerificationChanged', handler)
+    // Also listen to storage events (other tabs) to update UI
+    const storageHandler = (ev: StorageEvent) => {
+      if (!ev.key) return
+      if (ev.key === `self_verification_${address}` || ev.key === 'self_verified_global') {
+        handler()
+      }
+    }
+    window.addEventListener('storage', storageHandler)
+
+    return () => {
+      window.removeEventListener('selfVerificationChanged', handler)
+      window.removeEventListener('storage', storageHandler)
+    }
+  }, [address])
+
+  // Optional: log when verification becomes available (helpful for debugging)
+  useEffect(() => {
+    if (isIdentityVerified) {
+      console.info('SBT Mint: identity verified for', address)
+      try {
+        // friendly notice for users in dev
+        // toast({ title: 'Identity Verified', description: 'You can now mint your SBT.' })
+      } catch (e) {
+        // ignore if toast not available
+      }
+    }
+  }, [isIdentityVerified, address])
+
+  // watch minted flag as well
+  useEffect(() => {
+    const handler = () => {
+      if (!address) return
+      const minted = localStorage.getItem(`sbt_minted_${address}`) === 'true'
+      setIsSbtMintedFlag(minted)
+    }
+    window.addEventListener('selfVerificationChanged', handler)
+    window.addEventListener('storage', handler)
+    handler()
+    return () => {
+      window.removeEventListener('selfVerificationChanged', handler)
+      window.removeEventListener('storage', handler)
+    }
   }, [address])
 
   const eligible = score >= 70
-  const canMint = eligible && isConnected && isIdentityVerified
+  const canMint = eligible && isConnected && isIdentityVerified && !isSbtMintedFlag
 
   const { writeContract, isPending: isSubmitting } = useWriteContract()
   const { isLoading: isConfirming, isSuccess: isConfirmed, error: receiptError } = useWaitForTransactionReceipt({ hash })
@@ -92,6 +170,15 @@ export function SbtMintCard({ score }: { score: number }) {
     if (isConfirmed) {
       setTxStatus("confirmed")
       toast({ title: "Mint Successful!", description: "Your Reputation Passport SBT has been minted." })
+      try {
+        if (address) {
+          localStorage.setItem(`sbt_minted_${address}`, 'true')
+          setIsSbtMintedFlag(true)
+          try { window.dispatchEvent(new Event('selfVerificationChanged')) } catch (e) { /* ignore */ }
+        }
+      } catch (e) {
+        console.warn('Could not persist sbt minted flag', e)
+      }
     }
     if (receiptError) {
       setTxStatus("failed")
@@ -240,9 +327,13 @@ export function SbtMintCard({ score }: { score: number }) {
         )}
       </CardContent>
       <CardFooter>
-        <Button onClick={onMint} disabled={!canMint || isSubmitting || isConfirming || txStatus === "pending"}>
-          {isSubmitting ? "Confirm in wallet..." : isConfirming ? "Minting..." : "Mint SBT"}
-        </Button>
+        {isSbtMintedFlag ? (
+          <Button disabled variant="outline">Already Minted</Button>
+        ) : (
+          <Button onClick={onMint} disabled={!canMint || isSubmitting || isConfirming || txStatus === "pending"}>
+            {isSubmitting ? "Confirm in wallet..." : isConfirming ? "Minting..." : "Mint SBT"}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   )

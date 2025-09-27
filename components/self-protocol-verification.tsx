@@ -144,6 +144,7 @@ export function SelfProtocolVerification({ onVerificationComplete }: SelfProtoco
     localStorage.setItem(`self_verification_${address}`, JSON.stringify(verificationData))
     try {
       localStorage.setItem('self_verified_global', address)
+      try { window.dispatchEvent(new Event('selfVerificationChanged')) } catch (e) { /* ignore */ }
     } catch (e) {
       console.warn('Could not set global verification marker', e)
     }
