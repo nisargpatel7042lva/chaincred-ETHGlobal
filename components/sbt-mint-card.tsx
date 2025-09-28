@@ -128,41 +128,66 @@ export function SbtMintCard({ score }: { score: number }) {
   const eligible = score >= 70
   const canMint = eligible && isConnected && isIdentityVerified && !isSbtMintedFlag
 
+  const disabledReasons: string[] = []
+  if (!eligible) disabledReasons.push('Score below eligibility threshold (>= 70)')
+  if (!isConnected) disabledReasons.push('Wallet not connected')
+  if (!isIdentityVerified) disabledReasons.push('Identity not verified')
+  if (isSbtMintedFlag) disabledReasons.push('SBT already minted for this wallet in this browser')
+  if (!SBT_CONTRACT) disabledReasons.push('Contract address not configured')
+
   const { writeContract, isPending: isSubmitting } = useWriteContract()
   const { isLoading: isConfirming, isSuccess: isConfirmed, error: receiptError } = useWaitForTransactionReceipt({ hash })
 
   const onMint = () => {
-    if (!canMint) return
-    if (!SBT_CONTRACT) {
-      return toast({
-        title: "Contract Not Configured",
-        description: "The contract address is missing in .env.local.",
-        variant: "destructive",
-      })
+    // Defensive logging & user feedback
+    console.debug('SbtMintCard.onMint called', { canMint, isSubmitting, isConfirming, txStatus, isSbtMintedFlag, SBT_CONTRACT })
+    if (!canMint) {
+      const reasons: string[] = []
+      if (!eligible) reasons.push('score too low')
+      if (!isConnected) reasons.push('wallet not connected')
+      if (!isIdentityVerified) reasons.push('identity not verified')
+      if (isSbtMintedFlag) reasons.push('SBT already minted for this wallet in this browser')
+      const msg = `Cannot mint: ${reasons.join(', ') || 'unknown reason'}`
+      console.warn(msg)
+      toast({ title: 'Cannot Mint', description: msg, variant: 'destructive' })
+      return
     }
 
-    writeContract(
-      {
-        address: SBT_CONTRACT,
-        abi: SBT_ABI,
-        functionName: "mintReputationPassport",
-        args: ["Minting my on-chain reputation passport from the dApp."],
-      },
-      {
-        onSuccess: (txHash) => {
-          setHash(txHash)
-          setTxStatus("pending")
-          toast({ title: "Transaction Submitted", description: "Waiting for confirmation..." })
+    if (!SBT_CONTRACT) {
+      console.warn('SbtMintCard: missing contract address (NEXT_PUBLIC_REPUTATION_PASSPORT_ADDRESS)')
+      toast({ title: 'Contract Not Configured', description: 'The contract address is missing in .env.local.', variant: 'destructive' })
+      return
+    }
+
+    try {
+      writeContract(
+        {
+          address: SBT_CONTRACT,
+          abi: SBT_ABI,
+          functionName: 'mintReputationPassport',
+          args: ['Minting my on-chain reputation passport from the dApp.'],
         },
-        onError: (error: any) => {
-          setTxStatus("failed")
-          const msg = error?.message?.includes("User rejected the request")
-            ? "Transaction rejected by user."
-            : error?.shortMessage || "An unknown error occurred."
-          toast({ title: "Submission Failed", description: msg, variant: "destructive" })
-        },
-      }
-    )
+        {
+          onSuccess: (txHash) => {
+            console.info('SbtMintCard: writeContract onSuccess', txHash)
+            setHash(txHash)
+            setTxStatus('pending')
+            toast({ title: 'Transaction Submitted', description: 'Waiting for confirmation...' })
+          },
+          onError: (error: any) => {
+            setTxStatus('failed')
+            console.error('SbtMintCard: writeContract onError', error)
+            const msg = error?.message?.includes('User rejected the request')
+              ? 'Transaction rejected by user.'
+              : error?.shortMessage || 'An unknown error occurred.'
+            toast({ title: 'Submission Failed', description: msg, variant: 'destructive' })
+          },
+        }
+      )
+    } catch (e) {
+      console.error('SbtMintCard: writeContract threw', e)
+      toast({ title: 'Mint Failed', description: String(e), variant: 'destructive' })
+    }
   }
 
   // Effect to update status when confirmed or failed
@@ -323,6 +348,16 @@ export function SbtMintCard({ score }: { score: number }) {
                 {checking ? 'Checking…' : 'Check transaction'}
               </Button>
             </div>
+          </div>
+        )}
+
+        {/* Show explicit reasons why mint is disabled */}
+        {!canMint && !isSbtMintedFlag && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm font-medium text-yellow-800">Cannot mint yet</p>
+            <ul className="text-xs text-yellow-700 list-disc list-inside mt-2">
+              {disabledReasons.map((r, i) => <li key={i}>{r}</li>)}
+            </ul>
           </div>
         )}
       </CardContent>

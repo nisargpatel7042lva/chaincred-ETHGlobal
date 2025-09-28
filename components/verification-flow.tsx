@@ -464,13 +464,13 @@ export function VerificationFlow() {
       )}
 
       {/* Reset Button */}
-      {verificationResult && (
+      {/* {verificationResult && (
         <div className="text-center">
           <Button onClick={resetVerificationFlow} variant="outline">
             Reset Verification Flow
           </Button>
         </div>
-      )}
+      )} */}
     </div>
   )
 }
