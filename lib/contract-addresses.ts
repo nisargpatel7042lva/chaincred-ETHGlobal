@@ -2,12 +2,12 @@
 // This file should be updated with real deployed contract addresses
 
 export const CONTRACT_ADDRESSES = {
-  // Sepolia Testnet (for testing)
+  // Sepolia Testnet (for testing) - Mock addresses for demo
   sepolia: {
-    ReputationOracle: '0x0000000000000000000000000000000000000000', // Update after deployment
-    ReputationPassport: '0x0000000000000000000000000000000000000000', // Update after deployment
-    SelfProtocolVerifier: '0x0000000000000000000000000000000000000000', // Update after deployment
-    CrossChainReputation: '0x0000000000000000000000000000000000000000', // Update after deployment
+    ReputationOracle: '0x1234567890123456789012345678901234567890', // Mock address for demo
+    ReputationPassport: '0x2345678901234567890123456789012345678901', // Mock address for demo
+    SelfProtocolVerifier: '0x3456789012345678901234567890123456789012', // Mock address for demo
+    CrossChainReputation: '0x4567890123456789012345678901234567890123', // Mock address for demo
   },
   
   // Mainnet (for production) - UPDATE THESE AFTER DEPLOYMENT

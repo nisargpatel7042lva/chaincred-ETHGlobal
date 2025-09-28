@@ -1,0 +1,16 @@
+{
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "functions": {
+    "app/api/**/*.ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "env": {
+    "NEXT_PUBLIC_MAINNET_RPC_URL": "https://mainnet.infura.io/v3/demo",
+    "NEXT_PUBLIC_SEPOLIA_RPC_URL": "https://sepolia.infura.io/v3/demo",
+    "NEXT_PUBLIC_POLYGON_RPC_URL": "https://polygon-rpc.com",
+    "NEXT_PUBLIC_POLYGON_MUMBAI_RPC_URL": "https://rpc-mumbai.maticvigil.com"
+  }
+}
