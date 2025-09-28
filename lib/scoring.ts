@@ -1,6 +1,6 @@
 /* Enhanced Scoring System with Real The Graph Data */
 import { keccak256, toHex } from "viem"
-import { fetchWalletActivity, calculateReputationScore, type WalletActivity } from "./the-graph"
+import { fetchWalletActivity, type WalletActivity } from "./the-graph"
 
 export type ScoreBreakdown = {
   walletAge: number

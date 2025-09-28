@@ -5,9 +5,9 @@ async function main() {
   console.log("Network:", network.name);
   console.log("Chain ID:", network.config.chainId);
 
-  // Verify we're on Polygon
-  if (network.config.chainId !== 137) {
-    throw new Error("❌ This script is for Polygon mainnet deployment only. Chain ID must be 137.");
+  // Verify we're on Polygon (mainnet or Mumbai)
+  if (network.config.chainId !== 137 && network.config.chainId !== 80001) {
+    throw new Error("❌ This script is for Polygon deployment only. Chain ID must be 137 (mainnet) or 80001 (Mumbai).");
   }
 
   // Get deployer account
