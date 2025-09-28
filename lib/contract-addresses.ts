@@ -10,12 +10,12 @@ export const CONTRACT_ADDRESSES = {
     CrossChainReputation: '0x0000000000000000000000000000000000000000', // Update after deployment
   },
   
-  // Mainnet (for production)
+  // Mainnet (for production) - UPDATE THESE AFTER DEPLOYMENT
   mainnet: {
-    ReputationOracle: '0x0000000000000000000000000000000000000000', // Update after deployment
-    ReputationPassport: '0x0000000000000000000000000000000000000000', // Update after deployment
-    SelfProtocolVerifier: '0x0000000000000000000000000000000000000000', // Update after deployment
-    CrossChainReputation: '0x0000000000000000000000000000000000000000', // Update after deployment
+    ReputationOracle: process.env.NEXT_PUBLIC_REPUTATION_ORACLE_ADDRESS || '0x0000000000000000000000000000000000000000',
+    ReputationPassport: process.env.NEXT_PUBLIC_REPUTATION_PASSPORT_ADDRESS || '0x0000000000000000000000000000000000000000',
+    SelfProtocolVerifier: process.env.NEXT_PUBLIC_SELF_PROTOCOL_VERIFIER_ADDRESS || '0x0000000000000000000000000000000000000000',
+    CrossChainReputation: process.env.NEXT_PUBLIC_CROSS_CHAIN_REPUTATION_ADDRESS || '0x0000000000000000000000000000000000000000',
   },
   
   // Celo Alfajores (for Self Protocol)

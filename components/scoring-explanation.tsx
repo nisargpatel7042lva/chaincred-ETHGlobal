@@ -58,6 +58,19 @@ export function ScoringExplanation() {
         { factor: "Transaction Volume", weight: "15 points", description: "50 txs = 15 points" },
         { factor: "Wallet Age", weight: "10 points", description: "50 days = 10 points" },
       ]
+    },
+    {
+      id: "legacy",
+      name: "Legacy User Path",
+      icon: <Activity className="w-5 h-5" />,
+      description: "For old wallets (even if recently idle)",
+      maxScore: 80,
+      requirements: [
+        { factor: "Wallet Age (1+ years)", weight: "30 points", description: "Base score for 1+ year wallet" },
+        { factor: "Very Old Wallets", weight: "45 points", description: "2+ years = +20, 3+ years = +15, 4+ years = +10" },
+        { factor: "Historical Activity", weight: "35 points", description: "Any DAO votes (+15), DeFi (+10), 50+ txs (+10)" },
+        { factor: "Contract Diversity", weight: "10 points", description: "5+ unique contracts" },
+      ]
     }
   ]
 
@@ -81,6 +94,11 @@ export function ScoringExplanation() {
       title: "Long-term User Bonus",
       description: "1+ year old wallets get +15 points",
       icon: <Clock className="w-4 h-4" />
+    },
+    {
+      title: "Legacy User Protection",
+      description: "Old wallets get minimum 25-40 points even if idle",
+      icon: <Activity className="w-4 h-4" />
     }
   ]
 

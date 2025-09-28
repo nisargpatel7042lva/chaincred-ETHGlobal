@@ -106,7 +106,7 @@ interface RealSBTMinterProps {
 export function RealSBTMinter({ 
   isVerificationComplete, 
   verificationData, 
-  contractAddress = '0x1234567890123456789012345678901234567890', // Default mock address
+  contractAddress = process.env.NEXT_PUBLIC_REPUTATION_PASSPORT_ADDRESS || '0x1234567890123456789012345678901234567890', // Uses mainnet address
   onMintSuccess 
 }: RealSBTMinterProps) {
   const { address, isConnected, chain } = useAccount()

@@ -13,6 +13,7 @@ import { useAccount } from "wagmi"
 import { useReputation } from "@/hooks/use-reputation"
 import { SybilDemo } from "@/components/sybil-demo"
 import { ScoringExplanation } from "@/components/scoring-explanation"
+import { SBTStatus } from "@/components/sbt-status"
 import {
   Card,
   CardContent,
@@ -258,6 +259,11 @@ export default function HomePage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* SBT Status */}
+          <SBTStatus 
+            onMintClick={() => window.location.href = '/verification'}
+          />
         </div>
 
         {/* Right Column - What You Can Access */}

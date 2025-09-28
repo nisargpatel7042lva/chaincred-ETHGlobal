@@ -8,12 +8,14 @@
     "lint": "next lint",
     "start": "next start",
     "compile": "hardhat compile",
+    "deploy:mainnet": "hardhat run scripts/deploy-mainnet.js --network mainnet",
     "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
     "deploy:kadena": "hardhat run scripts/deploy.js --network kadena",
     "deploy:local": "hardhat run scripts/deploy-local.js --network localhost",
     "deploy:hardhat": "hardhat run scripts/simple-deploy.js",
     "setup:sample": "hardhat run scripts/setup-sample-data.js",
     "test": "hardhat test",
+    "verify:mainnet": "hardhat verify --network mainnet",
     "verify:sepolia": "hardhat verify --network sepolia"
   },
   "dependencies": {

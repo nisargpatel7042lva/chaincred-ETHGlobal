@@ -96,6 +96,7 @@ export function combineScore(b: ScoreBreakdown): number {
     calculateNewUserPath(b),        // New user friendly path
     calculateCommunityPath(b),      // Community participation path
     calculateDeFiPath(b),           // DeFi specialist path
+    calculateLegacyUserPath(b),     // Legacy user path (for idle old wallets)
   ]
   
   // Take the highest score from any path
@@ -160,6 +161,38 @@ function calculateDeFiPath(b: ScoreBreakdown): number {
 }
 
 /**
+ * Legacy user path (for old wallets that might be idle)
+ */
+function calculateLegacyUserPath(b: ScoreBreakdown): number {
+  // Only applies to wallets older than 1 year
+  if (b.walletAge < 365) return 0
+  
+  // Base score for being a long-term user
+  let score = 30 // Base score for 1+ year old wallet
+  
+  // Additional points for very old wallets
+  if (b.walletAge > 730) score += 20 // 2+ years
+  if (b.walletAge > 1095) score += 15 // 3+ years
+  if (b.walletAge > 1460) score += 10 // 4+ years
+  
+  // Bonus for any historical activity (even if old)
+  if (b.daoVotes > 0) score += 15 // Any DAO participation
+  if (b.defiTxs > 0) score += 10 // Any DeFi activity
+  if ((b.totalTxs || 0) > 50) score += 10 // Decent transaction history
+  
+  // Bonus for contract diversity (shows they've used various protocols)
+  if ((b.uniqueContracts || 0) > 5) score += 10
+  
+  // Small penalty for completely inactive wallets (no activity in 2+ years)
+  const twoYearsAgo = Date.now() / 1000 - (2 * 365 * 24 * 60 * 60)
+  if ((b.lastActivity || 0) < twoYearsAgo) {
+    score = Math.max(25, score - 15) // Minimum 25 for very old wallets
+  }
+  
+  return Math.min(score, 80) // Cap at 80 for legacy users
+}
+
+/**
  * Apply fairness adjustments to prevent exclusion
  */
 function applyFairnessAdjustments(score: number, b: ScoreBreakdown): number {
@@ -184,6 +217,23 @@ function applyFairnessAdjustments(score: number, b: ScoreBreakdown): number {
   if ((b.totalTxs || 0) > 100) {
     adjustedScore += 5 // Bonus for high transaction volume
   }
+  
+  // Legacy user protection (for idle old wallets)
+  if (b.walletAge > 365) {
+    // Ensure old wallets get a decent minimum score even if idle
+    const oneYearAgo = Date.now() / 1000 - (365 * 24 * 60 * 60)
+    const isRecentlyInactive = (b.lastActivity || 0) < oneYearAgo
+    
+    if (isRecentlyInactive) {
+      // Still give them a reasonable score based on wallet age
+      const legacyMinimum = Math.min(40, 20 + (b.walletAge / 365) * 5)
+      adjustedScore = Math.max(adjustedScore, legacyMinimum)
+    }
+  }
+  
+  // Identity verification bonus (if they complete Self Protocol verification)
+  // This would be added when they actually verify their identity
+  // adjustedScore += 20 // Bonus for completing identity verification
   
   return adjustedScore
 }

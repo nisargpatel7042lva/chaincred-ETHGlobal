@@ -20,7 +20,7 @@ import {
 } from "lucide-react"
 import { countries, SelfQRcodeWrapper, SelfAppBuilder, getUniversalLink } from '@selfxyz/qrcode'
 import { SELF_CONFIG, getCallbackUrl } from '@/lib/self-protocol'
-import { RealSBTMinter } from './real-sbt-minter'
+import { SBTMinter } from './sbt-minter'
 import { getContractAddress } from '@/lib/contract-addresses'
 
 interface VerificationStep {
@@ -298,6 +298,14 @@ export function VerificationFlow() {
     }
   }
 
+  const handleSBTMintingComplete = (result: any) => {
+    console.log('SBT minting completed:', result)
+    if (result.success) {
+      setSbtMinted(true)
+      updateStep('mint_sbt', true)
+    }
+  }
+
   const resetVerificationFlow = () => {
     setSelfApp(null)
     setUniversalLink("")
@@ -423,15 +431,14 @@ export function VerificationFlow() {
 
       {/* Real SBT Minting Section */}
       {isSBTEnabled && (
-        <RealSBTMinter
-          isVerificationComplete={isVerificationComplete}
+        <SBTMinter
           verificationData={verificationResult}
-          contractAddress={getContractAddress('ReputationPassport', chain?.id)}
-            onMintSuccess={(txHash) => {
-              console.log('SBT minted successfully:', txHash)
-              setSbtMinted(true)
-              updateStep('mint_sbt', true)
-              try {
+          onMintingComplete={handleSBTMintingComplete}
+          onMintSuccess={(txHash) => {
+            console.log('SBT minted successfully:', txHash)
+            setSbtMinted(true)
+            updateStep('mint_sbt', true)
+            try {
                 if (address) {
                   localStorage.setItem(`sbt_minted_${address}`, 'true')
                   // notify listeners
