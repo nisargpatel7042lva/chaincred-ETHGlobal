@@ -18,6 +18,22 @@ export const CONTRACT_ADDRESSES = {
     CrossChainReputation: process.env.NEXT_PUBLIC_CROSS_CHAIN_REPUTATION_ADDRESS || '0x0000000000000000000000000000000000000000',
   },
   
+  // Polygon Mainnet (for low-cost transactions)
+  polygon: {
+    ReputationOracle: process.env.NEXT_PUBLIC_POLYGON_REPUTATION_ORACLE_ADDRESS || '0x0000000000000000000000000000000000000000',
+    ReputationPassport: process.env.NEXT_PUBLIC_POLYGON_REPUTATION_PASSPORT_ADDRESS || '0x0000000000000000000000000000000000000000',
+    SelfProtocolVerifier: process.env.NEXT_PUBLIC_POLYGON_SELF_PROTOCOL_VERIFIER_ADDRESS || '0x0000000000000000000000000000000000000000',
+    CrossChainReputation: process.env.NEXT_PUBLIC_POLYGON_CROSS_CHAIN_REPUTATION_ADDRESS || '0x0000000000000000000000000000000000000000',
+  },
+  
+  // Polygon Mumbai (for testing)
+  polygonMumbai: {
+    ReputationOracle: '0x0000000000000000000000000000000000000000', // Update after deployment
+    ReputationPassport: '0x0000000000000000000000000000000000000000', // Update after deployment
+    SelfProtocolVerifier: '0x0000000000000000000000000000000000000000', // Update after deployment
+    CrossChainReputation: '0x0000000000000000000000000000000000000000', // Update after deployment
+  },
+  
   // Celo Alfajores (for Self Protocol)
   celoAlfajores: {
     ReputationOracle: '0x0000000000000000000000000000000000000000', // Update after deployment
@@ -37,6 +53,12 @@ export function getContractAddress(contractName: keyof typeof CONTRACT_ADDRESSES
       break
     case 11155111:
       networkKey = 'sepolia'
+      break
+    case 137:
+      networkKey = 'polygon'
+      break
+    case 80001:
+      networkKey = 'polygonMumbai'
       break
     case 44787:
       networkKey = 'celoAlfajores'

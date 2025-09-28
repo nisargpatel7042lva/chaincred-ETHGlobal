@@ -56,6 +56,18 @@ const config = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 1789, // Kadena testnet chain ID
     },
+    polygon: {
+      url: process.env.POLYGON_RPC_URL || "https://polygon-rpc.com",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 137,
+      gasPrice: 30000000000, // 30 gwei
+    },
+    polygonMumbai: {
+      url: process.env.POLYGON_MUMBAI_RPC_URL || "https://rpc-mumbai.maticvigil.com",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 80001,
+      gasPrice: 20000000000, // 20 gwei
+    },
     localhost: {
       url: "http://127.0.0.1:8545",
     },
@@ -66,6 +78,8 @@ const config = {
       sepolia: process.env.ETHERSCAN_API_KEY || "",
       celoAlfajores: process.env.CELO_EXPLORER_API_KEY || "",
       celo: process.env.CELO_EXPLORER_API_KEY || "",
+      polygon: process.env.POLYGONSCAN_API_KEY || "",
+      polygonMumbai: process.env.POLYGONSCAN_API_KEY || "",
     },
     customChains: [
       {
@@ -82,6 +96,22 @@ const config = {
         urls: {
           apiURL: "https://api.celoscan.io/api",
           browserURL: "https://celoscan.io"
+        }
+      },
+      {
+        network: "polygon",
+        chainId: 137,
+        urls: {
+          apiURL: "https://api.polygonscan.com/api",
+          browserURL: "https://polygonscan.com"
+        }
+      },
+      {
+        network: "polygonMumbai",
+        chainId: 80001,
+        urls: {
+          apiURL: "https://api-testnet.polygonscan.com/api",
+          browserURL: "https://mumbai.polygonscan.com"
         }
       }
     ]
