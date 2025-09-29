@@ -1,4 +1,4 @@
-# ChainCred – Ethereum Reputation Passport (ETHGlobal)
+# ChainCred – Reputation Passport (ETHGlobal)
 
 ![Logo](public/logo.png)
 
