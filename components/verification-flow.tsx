@@ -2,7 +2,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useAccount } from 'wagmi'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -20,7 +20,7 @@ import {
 } from "lucide-react"
 import { countries, SelfQRcodeWrapper, SelfAppBuilder, getUniversalLink } from '@selfxyz/qrcode'
 import { SELF_CONFIG, getCallbackUrl } from '@/lib/self-protocol'
-import { SBTMinter } from './sbt-minter'
+import { RealSBTMinter } from './real-sbt-minter'
 import { getContractAddress } from '@/lib/contract-addresses'
 
 interface VerificationStep {
@@ -33,28 +33,7 @@ interface VerificationStep {
   enabled: boolean
 }
 
-// Mock SBT contract
-const SBT_CONTRACT_ADDRESS = '0x1234567890123456789012345678901234567890'
-const SBT_CONTRACT_ABI = [
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      },
-      {
-        "internalType": "string",
-        "name": "tokenURI",
-        "type": "string"
-      }
-    ],
-    "name": "mintSBT",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  }
-] as const
+// Using real on-chain minter component; no mock ABI here
 
 export function VerificationFlow() {
   const { address, isConnected, chain } = useAccount()
@@ -63,14 +42,7 @@ export function VerificationFlow() {
   const [isVerifying, setIsVerifying] = useState(false)
   const [verificationResult, setVerificationResult] = useState<any>(null)
   const [error, setError] = useState<string>('')
-  const [isMintingSBT, setIsMintingSBT] = useState(false)
   const [sbtMinted, setSbtMinted] = useState(false)
-
-  // SBT minting
-  const { writeContract: writeSBTContract, data: sbtHash, error: sbtError, isPending: isSBTPending } = useWriteContract()
-  const { isLoading: isSBTConfirming, isSuccess: isSBTSuccess } = useWaitForTransactionReceipt({
-    hash: sbtHash,
-  })
 
   const [verificationSteps, setVerificationSteps] = useState<VerificationStep[]>([
     {
@@ -271,26 +243,7 @@ export function VerificationFlow() {
     setError(`Verification failed: ${data.reason || data.error_code || 'Unknown error'}`)
   }
 
-  const handleMintSBT = async () => {
-    if (!address || !verificationResult) return
-
-    setIsMintingSBT(true)
-    try {
-      // Mock SBT minting
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      writeSBTContract({
-        address: SBT_CONTRACT_ADDRESS as `0x${string}`,
-        abi: SBT_CONTRACT_ABI,
-        functionName: 'mintSBT',
-        args: [address, `https://chaincred.vercel.app/metadata/${address}`],
-      })
-    } catch (err) {
-      console.error('SBT minting failed:', err)
-    } finally {
-      setIsMintingSBT(false)
-    }
-  }
+  // Minting handled by RealSBTMinter
 
   const openSelfApp = () => {
     if (universalLink) {
@@ -431,23 +384,24 @@ export function VerificationFlow() {
 
       {/* Real SBT Minting Section */}
       {isSBTEnabled && (
-        <SBTMinter
+        <RealSBTMinter
+          isVerificationComplete={!!verificationResult}
           verificationData={verificationResult}
-          onMintingComplete={handleSBTMintingComplete}
+          contractAddress={getContractAddress('ReputationPassport', chain?.id)}
           onMintSuccess={(txHash) => {
             console.log('SBT minted successfully:', txHash)
             setSbtMinted(true)
             updateStep('mint_sbt', true)
+            handleSBTMintingComplete({ success: true, txHash })
             try {
-                if (address) {
-                  localStorage.setItem(`sbt_minted_${address}`, 'true')
-                  // notify listeners
-                  try { window.dispatchEvent(new Event('selfVerificationChanged')) } catch (e) { /* ignore */ }
-                }
-              } catch (e) {
-                console.warn('Could not persist SBT minted flag', e)
+              if (address) {
+                localStorage.setItem(`sbt_minted_${address}`, 'true')
+                try { window.dispatchEvent(new Event('selfVerificationChanged')) } catch (e) { /* ignore */ }
               }
-            }}
+            } catch (e) {
+              console.warn('Could not persist SBT minted flag', e)
+            }
+          }}
         />
       )}
 

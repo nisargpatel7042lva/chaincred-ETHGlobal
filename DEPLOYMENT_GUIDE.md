@@ -42,7 +42,7 @@ CELO_EXPLORER_API_KEY=your_celo_explorer_api_key
 - Connect your wallet
 - Request CELO tokens
 
-### Polygon Mumbai
+###  Mumbai
 - Visit: https://faucet.polygon.technology/
 - Enter your wallet address
 - Request MATIC tokens
